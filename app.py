@@ -64,7 +64,7 @@ st.markdown("""
         justify-content: space-between !important;
         width: 100% !important;
         gap: 8px !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 8px !important;
     }
 
     div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) > div:nth-child(1),
@@ -85,23 +85,24 @@ st.markdown("""
         white-space: nowrap !important;
     }
 
-    /* Custom Mobile HTML Calendar Table */
-    .custom-cal-table {
+    /* Calendar Grid styling for popovers */
+    div[data-testid="stPopover"] > button {
         width: 100% !important;
-        border-collapse: collapse !important;
+        height: 48px !important;
+        padding: 2px !important;
         font-size: 12px !important;
-        margin-bottom: 10px !important;
-    }
-    .custom-cal-table th, .custom-cal-table td {
         border: 1px solid #31333f !important;
-        padding: 6px 2px !important;
-        text-align: center !important;
-        width: 14.28% !important;
+        border-radius: 4px !important;
+        background-color: #0e1117 !important;
+        color: #ffffff !important;
     }
-    .custom-cal-table th {
-        background-color: #1e1f26 !important;
-        color: #f3f4f6 !important;
-        font-weight: 700 !important;
+
+    .weekday-hdr {
+        text-align: center;
+        font-weight: 700;
+        font-size: 12px;
+        color: #f3f4f6;
+        padding-bottom: 4px;
     }
 
     /* Yellow Highlight Badge for x2, x3 Multipliers */
@@ -112,8 +113,6 @@ st.markdown("""
         padding: 1px 3px !important;
         border-radius: 4px !important;
         font-size: 10px !important;
-        margin-left: 2px !important;
-        display: inline-block !important;
     }
 
     /* Compact Month Header Styling */
@@ -151,8 +150,8 @@ st.markdown("""
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Google Calendar Writer Helper Function
-def add_peach_event(event_date):
+# 2. Google Calendar API Helper Functions
+def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
@@ -161,17 +160,31 @@ def add_peach_event(event_date):
         creds_info,
         scopes=["https://www.googleapis.com/auth/calendar"]
     )
-    service = build("calendar", "v3", credentials=credentials)
-    
+    return build("calendar", "v3", credentials=credentials)
+
+def update_peach_events(event_date, target_count, current_events):
+    service = get_calendar_service()
     calendar_id = "bmadams809@gmail.com"
     
-    event_body = {
-        'summary': '🍑',
-        'start': {'date': event_date.strftime('%Y-%m-%d')},
-        'end': {'date': event_date.strftime('%Y-%m-%d')},
-    }
+    # Filter event list for entries on this target date
+    existing_event_ids = [e['id'] for e in current_events if e['date'] == event_date]
+    existing_count = len(existing_event_ids)
     
-    service.events().insert(calendarId=calendar_id, body=event_body).execute()
+    if target_count > existing_count:
+        # Add missing events
+        for _ in range(target_count - existing_count):
+            event_body = {
+                'summary': '🍑',
+                'start': {'date': event_date.strftime('%Y-%m-%d')},
+                'end': {'date': event_date.strftime('%Y-%m-%d')},
+            }
+            service.events().insert(calendarId=calendar_id, body=event_body).execute()
+            
+    elif target_count < existing_count:
+        # Remove excess events
+        to_delete = existing_event_ids[:(existing_count - target_count)]
+        for ev_id in to_delete:
+            service.events().delete(calendarId=calendar_id, eventId=ev_id).execute()
 
 # 3. Fetch & Cache Data
 @st.cache_data(ttl=300)
@@ -184,6 +197,8 @@ def fetch_calendar_data():
     for line in ics_text.splitlines():
         if line.startswith("BEGIN:VEVENT"):
             current_event = {}
+        elif line.startswith("UID:"):
+            current_event['id'] = line.split(":", 1)[1].strip()
         elif line.startswith("DTSTART"):
             match = re.search(r'(\d{8})', line)
             if match:
@@ -192,11 +207,12 @@ def fetch_calendar_data():
             current_event['summary'] = line.split(":", 1)[1].strip()
         elif line.startswith("END:VEVENT"):
             if current_event.get('summary') == "🍑" and 'date' in current_event:
-                events.append(current_event['date'])
-    return sorted(events)
+                events.append(current_event)
+    return events
 
 # Load data
-events = fetch_calendar_data()
+raw_events = fetch_calendar_data()
+events = sorted([e['date'] for e in raw_events])
 
 # Create maps for analytical calculations
 date_counts = defaultdict(int)
@@ -313,33 +329,17 @@ def handle_next():
 st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
 st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
 
-# Add Peach Form Expander
-with st.expander("➕ Add 🍑 to Calendar"):
-    with st.form("add_peach_form"):
-        selected_date = st.date_input("Select Date", value=datetime.now().date())
-        submit = st.form_submit_button("Add 🍑 Entry", use_container_width=True)
-        
-        if submit:
-            try:
-                add_peach_event(selected_date)
-                st.cache_data.clear()
-                st.success(f"Added 🍑 for {selected_date.strftime('%b %d, %Y')}!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Failed to add entry: {e}")
-
 if st.button("🔄 Force Refresh", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
 st.divider()
 
-# --- 2. CALENDAR TOOLBAR & VIEW ---
+# --- 2. CALENDAR TOOLBAR & INTERACTIVE GRID ---
 st.subheader("📅 Calendar View")
 
 month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
 
-# Native Streamlit Columns forced to 1-line via CSS
 col_prev, col_label, col_next = st.columns([1, 3, 1])
 
 with col_prev:
@@ -351,36 +351,65 @@ with col_label:
 with col_next:
     st.button("›", key="btn_next_month", on_click=handle_next, use_container_width=True)
 
-# Render HTML Month Grid Table
+# Render Weekday Headers
+days_header = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+hdr_cols = st.columns(7)
+for idx, dh in enumerate(days_header):
+    hdr_cols[idx].markdown(f'<div class="weekday-hdr">{dh}</div>', unsafe_allow_html=True)
+
+# Render Interactive Calendar Grid
 selected_year = st.session_state.cal_year
 selected_month = st.session_state.cal_month
-
 month_cal = calendar.monthcalendar(selected_year, selected_month)
-days_header = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-table_html = '<table class="custom-cal-table"><thead><tr>'
-for dh in days_header:
-    table_html += f'<th>{dh}</th>'
-table_html += '</tr></thead><tbody>'
 
 for week in month_cal:
-    table_html += '<tr>'
-    for day in week:
-        if day == 0:
-            table_html += '<td></td>'
-        else:
-            curr_date = date(selected_year, selected_month, day)
-            count = date_counts.get(curr_date, 0)
-            if count == 1:
-                table_html += f'<td>{day}🍑</td>'
-            elif count > 1:
-                table_html += f'<td>{day}🍑<span class="mult-badge">x{count}</span></td>'
+    week_cols = st.columns(7)
+    for i, day in enumerate(week):
+        with week_cols[i]:
+            if day == 0:
+                st.write("")
             else:
-                table_html += f'<td>{day}</td>'
-    table_html += '</tr>'
-table_html += '</tbody></table>'
-
-st.markdown(table_html, unsafe_allow_html=True)
+                curr_date = date(selected_year, selected_month, day)
+                count = date_counts.get(curr_date, 0)
+                
+                # Format Tile Label
+                if count == 1:
+                    label = f"{day}🍑"
+                elif count > 1:
+                    label = f"{day}🍑x{count}"
+                else:
+                    label = str(day)
+                
+                # Tap to Open Overlay Popup
+                with st.popover(label, use_container_width=True):
+                    st.caption(f"**{curr_date.strftime('%a, %b %d, %Y')}**")
+                    
+                    # Number selector (- / +)
+                    new_val = st.number_input(
+                        "🍑 Count", 
+                        min_value=0, 
+                        max_value=10, 
+                        value=count, 
+                        step=1, 
+                        key=f"num_{curr_date}"
+                    )
+                    
+                    # Action Buttons (✓ Submit / ✕ Cancel)
+                    btn_col1, btn_col2 = st.columns(2)
+                    
+                    with btn_col1:
+                        if st.button("✓", key=f"save_{curr_date}", use_container_width=True):
+                            try:
+                                update_peach_events(curr_date, new_val, raw_events)
+                                st.cache_data.clear()
+                                st.success("Updated!")
+                                st.rerun()
+                            except Exception as err:
+                                st.error(f"Error: {err}")
+                                
+                    with btn_col2:
+                        # Clicking cancel or anywhere outside closes the popover automatically
+                        st.button("✕", key=f"cancel_{curr_date}", use_container_width=True)
 
 st.divider()
 
