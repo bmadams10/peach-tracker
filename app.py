@@ -4,8 +4,14 @@ from collections import defaultdict
 from datetime import datetime
 import streamlit as st
 
-# Page setup
-st.set_page_config(page_title="🍑 TRACKER Dashboard", page_icon="🍑", layout="wide")
+import streamlit as st
+
+# Set page title and top logo / tab favicon
+st.set_page_config(
+    page_title="🍑 Live TRACKER Dashboard", 
+    page_icon="🍑", 
+    layout="wide"
+)
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
