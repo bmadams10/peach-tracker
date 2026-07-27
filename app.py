@@ -82,6 +82,18 @@ st.markdown("""
         text-align: center !important;
     }
 
+    /* Yellow Highlight Badge for x2, x3 Multipliers */
+    .mult-badge {
+        background-color: #ffd700 !important;
+        color: #111111 !important;
+        font-weight: 800 !important;
+        padding: 1px 4px !important;
+        border-radius: 4px !important;
+        font-size: 10px !important;
+        margin-left: 2px !important;
+        display: inline-block !important;
+    }
+
     /* Compact Month Header Styling */
     .month-hdr {
         font-size: 13px !important;
@@ -191,7 +203,6 @@ for d in events:
     
     if d.year == prev_year:
         counts_prev[d.month] += 1
-        # Calculate YTD comparison up to same day/month of previous year
         if (d.month < current_month) or (d.month == current_month and d.day <= today.day):
             prev_ytd_count += 1
     elif d.year == current_year:
@@ -265,7 +276,7 @@ if max_streak_dates:
 else:
     streak_period_str = "—"
 
-# Initialize Calendar Session State to Always Auto-Show Current Month/Year on Load
+# Initialize Calendar Session State
 if "cal_year" not in st.session_state:
     st.session_state.cal_year = current_year
 if "cal_month" not in st.session_state:
@@ -316,7 +327,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Render Month Grid Table (Sunday First)
+# Render Month Grid Table (Sunday First & Yellow Multiplier Badges)
 selected_year = st.session_state.cal_year
 selected_month = st.session_state.cal_month
 
@@ -336,12 +347,15 @@ for week in month_cal:
             if count == 1:
                 week_row[day_name] = f"{day}🍑"
             elif count > 1:
-                week_row[day_name] = f"{day}🍑x{count}"
+                week_row[day_name] = f'{day}🍑<span class="mult-badge">x{count}</span>'
             else:
                 week_row[day_name] = str(day)
     grid_data.append(week_row)
 
-st.table(grid_data)
+st.write(
+    st.table(grid_data).to_html(), 
+    unsafe_allow_html=True
+)
 
 st.divider()
 
