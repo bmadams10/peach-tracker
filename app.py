@@ -133,10 +133,17 @@ st.markdown("""
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
+
+    /* Override button styling inside nav toolbar */
+    div[data-testid="stColumn"] button {
+        height: 38px !important;
+        font-size: 20px !important;
+        font-weight: bold !important;
+    }
     </style>
 
     <script>
-    // Touch Swipe Gesture Listener for Calendar Table
+    // Touch Swipe Gesture Listener targeting calendar table
     document.addEventListener('DOMContentLoaded', () => {
         let touchstartX = 0;
         let touchendX = 0;
@@ -146,9 +153,13 @@ st.markdown("""
             const swipeDistance = touchendX - touchstartX;
             if (Math.abs(swipeDistance) >= minSwipeDistance) {
                 if (swipeDistance < 0) {
-                    window.location.href = '?action=next';
+                    // Swiped Left -> Next Month Button Click
+                    const nextBtn = document.querySelector('button[key="nav_next_btn"]') || document.querySelectorAll('button')[1];
+                    if (nextBtn) nextBtn.click();
                 } else {
-                    window.location.href = '?action=prev';
+                    // Swiped Right -> Prev Month Button Click
+                    const prevBtn = document.querySelector('button[key="nav_prev_btn"]') || document.querySelectorAll('button')[0];
+                    if (prevBtn) prevBtn.click();
                 }
             }
         }
@@ -291,23 +302,20 @@ if "cal_year" not in st.session_state:
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = current_month
 
-# Handle Action Buttons/Swipes for Next/Prev
-query_params = st.query_params
-if "action" in query_params:
-    act = query_params["action"]
-    if act == "prev":
-        if st.session_state.cal_month == 1:
-            st.session_state.cal_month = 12
-            st.session_state.cal_year -= 1
-        else:
-            st.session_state.cal_month -= 1
-    elif act == "next":
-        if st.session_state.cal_month == 12:
-            st.session_state.cal_month = 1
-            st.session_state.cal_year += 1
-        else:
-            st.session_state.cal_month += 1
-    st.query_params.clear()
+# Calendar Navigation Callbacks
+def prev_month():
+    if st.session_state.cal_month == 1:
+        st.session_state.cal_month = 12
+        st.session_state.cal_year -= 1
+    else:
+        st.session_state.cal_month -= 1
+
+def next_month():
+    if st.session_state.cal_month == 12:
+        st.session_state.cal_month = 1
+        st.session_state.cal_year += 1
+    else:
+        st.session_state.cal_month += 1
 
 # --- 1. HEADER SECTION ---
 st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
@@ -324,19 +332,19 @@ st.subheader("📅 Calendar View")
 
 month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
 
-st.markdown(f"""
-    <div class="nav-toolbar-container">
-        <a href="?action=prev" target="_self" style="text-decoration: none;">
-            <button style="width: 44px; height: 34px; font-size: 18px; font-weight: bold; border-radius: 6px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">‹</button>
-        </a>
-        <div class="month-nav-label-inline">{month_display}</div>
-        <a href="?action=next" target="_self" style="text-decoration: none;">
-            <button style="width: 44px; height: 34px; font-size: 18px; font-weight: bold; border-radius: 6px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">›</button>
-        </a>
-    </div>
-""", unsafe_allow_html=True)
+# Native Streamlit Navigation Bar with Callbacks
+c_prev, c_label, c_next = st.columns([0.2, 0.6, 0.2], vertical_alignment="center")
 
-# Render HTML Month Grid Table (Sunday First & Yellow Multiplier Badges)
+with c_prev:
+    st.button("‹", key="nav_prev_btn", on_click=prev_month, use_container_width=True)
+
+with c_label:
+    st.markdown(f'<div class="month-nav-label-inline">{month_display}</div>', unsafe_allow_html=True)
+
+with c_next:
+    st.button("›", key="nav_next_btn", on_click=next_month, use_container_width=True)
+
+# Render HTML Month Grid Table
 selected_year = st.session_state.cal_year
 selected_month = st.session_state.cal_month
 
