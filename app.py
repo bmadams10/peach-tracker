@@ -53,22 +53,23 @@ st.markdown("""
         margin-top: 0.2rem !important;
     }
 
-    /* Single-Row Mobile Calendar Toolbar */
-    .nav-toolbar-container {
+    /* FORCE CALENDAR TOOLBAR TO REMAIN IN 1 SINGLE ROW ON MOBILE */
+    div[data-testid="stHorizontalBlock"]:has(#nav-container) {
         display: flex !important;
         flex-direction: row !important;
+        flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
         width: 100% !important;
-        margin-top: 4px !important;
+        gap: 8px !important;
         margin-bottom: 8px !important;
     }
 
     .month-nav-label-inline {
-        font-size: 20px !important;
+        font-size: 19px !important;
         font-weight: 700 !important;
         text-align: center !important;
-        flex-grow: 1 !important;
+        white-space: nowrap !important;
     }
 
     /* Custom Mobile HTML Calendar Table */
@@ -143,34 +144,35 @@ st.markdown("""
     </style>
 
     <script>
-    // Touch Swipe Gesture Listener targeting calendar table
+    // Broad Touch Swipe Gesture Listener on Calendar Container
     document.addEventListener('DOMContentLoaded', () => {
         let touchstartX = 0;
         let touchendX = 0;
-        const minSwipeDistance = 50;
+        const minSwipeDistance = 40; // Reduced threshold for easier swiping
 
         function handleGesture() {
             const swipeDistance = touchendX - touchstartX;
             if (Math.abs(swipeDistance) >= minSwipeDistance) {
                 if (swipeDistance < 0) {
-                    // Swiped Left -> Next Month Button Click
-                    const nextBtn = document.querySelector('button[key="nav_next_btn"]') || document.querySelectorAll('button')[1];
+                    // Swiped Left -> Click Next Button
+                    const nextBtn = document.querySelector('button[key="nav_next_btn"]');
                     if (nextBtn) nextBtn.click();
                 } else {
-                    // Swiped Right -> Prev Month Button Click
-                    const prevBtn = document.querySelector('button[key="nav_prev_btn"]') || document.querySelectorAll('button')[0];
+                    // Swiped Right -> Click Prev Button
+                    const prevBtn = document.querySelector('button[key="nav_prev_btn"]');
                     if (prevBtn) prevBtn.click();
                 }
             }
         }
 
-        const calTable = document.querySelector('.custom-cal-table');
-        if (calTable) {
-            calTable.addEventListener('touchstart', e => {
+        // Attach touch listener to the entire calendar area
+        const calSection = document.getElementById('calendar-area');
+        if (calSection) {
+            calSection.addEventListener('touchstart', e => {
                 touchstartX = e.changedTouches[0].screenX;
             }, {passive: true});
 
-            calTable.addEventListener('touchend', e => {
+            calSection.addEventListener('touchend', e => {
                 touchendX = e.changedTouches[0].screenX;
                 handleGesture();
             }, {passive: true});
@@ -330,9 +332,14 @@ st.divider()
 # --- 2. CALENDAR TOOLBAR & VIEW ---
 st.subheader("📅 Calendar View")
 
+# Wrap whole calendar section in div for easy touch swiping
+st.markdown('<div id="calendar-area">', unsafe_allow_html=True)
+
+# Anchor element for CSS 1-row forced layout
+st.markdown('<div id="nav-container"></div>', unsafe_allow_html=True)
+
 month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
 
-# Native Streamlit Navigation Bar with Callbacks
 c_prev, c_label, c_next = st.columns([0.2, 0.6, 0.2], vertical_alignment="center")
 
 with c_prev:
@@ -374,6 +381,7 @@ for week in month_cal:
 table_html += '</tbody></table>'
 
 st.markdown(table_html, unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True) # Close calendar-area
 
 st.divider()
 
