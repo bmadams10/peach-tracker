@@ -16,7 +16,7 @@ current_month = today.month
 
 # 1. Page Configuration & Favicon Icon
 st.set_page_config(
-    page_title="PEACH TIME TRACKER", 
+    page_title="PEACH TIME TRACKER v.1.1", 
     page_icon="🍑", 
     layout="wide",
     initial_sidebar_state="collapsed"
