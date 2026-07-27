@@ -4,6 +4,8 @@ from collections import defaultdict
 from datetime import datetime, date
 import calendar
 import streamlit as st
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 # Set calendar to start week on Sunday
 calendar.setfirstweekday(calendar.SUNDAY)
@@ -114,6 +116,48 @@ st.markdown("""
         display: inline-block !important;
     }
 
+    /* Counter Control Display Styling */
+    .counter-peach-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .counter-peach-img {
+        font-size: 40px;
+        line-height: 1.0;
+    }
+    .counter-label {
+        font-size: 14px;
+        color: #a1a1aa;
+        font-weight: 500;
+        margin-top: 4px;
+    }
+
+    /* Round Action Controls (- and +) */
+    div[data-testid="stDialog"] button[key="modal_minus_btn"] {
+        background-color: #2c2c2e !important;
+        color: #ffffff !important;
+        border-radius: 50% !important;
+        width: 52px !important;
+        height: 52px !important;
+        font-size: 22px !important;
+        border: none !important;
+        margin: 0 auto !important;
+    }
+
+    div[data-testid="stDialog"] button[key="modal_plus_btn"] {
+        background-color: #f59e0b !important;
+        color: #000000 !important;
+        border-radius: 50% !important;
+        width: 52px !important;
+        height: 52px !important;
+        font-size: 22px !important;
+        border: none !important;
+        font-weight: bold !important;
+        margin: 0 auto !important;
+    }
+
     /* Compact Month Header Styling */
     .month-hdr {
         font-size: 13px !important;
@@ -149,7 +193,40 @@ st.markdown("""
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Fetch & Cache Data
+# 2. Google Calendar API Helper Functions
+def get_calendar_service():
+    if "gcp_service_account" not in st.secrets:
+        raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
+    
+    creds_info = st.secrets["gcp_service_account"]
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_info,
+        scopes=["https://www.googleapis.com/auth/calendar"]
+    )
+    return build("calendar", "v3", credentials=credentials)
+
+def update_peach_events(event_date, target_count, current_events):
+    service = get_calendar_service()
+    calendar_id = "bmadams809@gmail.com"
+    
+    existing_event_ids = [e['id'] for e in current_events if e['date'] == event_date]
+    existing_count = len(existing_event_ids)
+    
+    if target_count > existing_count:
+        for _ in range(target_count - existing_count):
+            event_body = {
+                'summary': '🍑',
+                'start': {'date': event_date.strftime('%Y-%m-%d')},
+                'end': {'date': event_date.strftime('%Y-%m-%d')},
+            }
+            service.events().insert(calendarId=calendar_id, body=event_body).execute()
+            
+    elif target_count < existing_count:
+        to_delete = existing_event_ids[:(existing_count - target_count)]
+        for ev_id in to_delete:
+            service.events().delete(calendarId=calendar_id, eventId=ev_id).execute()
+
+# 3. Fetch & Cache Data
 @st.cache_data(ttl=300)
 def fetch_calendar_data():
     req = urllib.request.Request(ICS_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -160,6 +237,8 @@ def fetch_calendar_data():
     for line in ics_text.splitlines():
         if line.startswith("BEGIN:VEVENT"):
             current_event = {}
+        elif line.startswith("UID:"):
+            current_event['id'] = line.split(":", 1)[1].strip()
         elif line.startswith("DTSTART"):
             match = re.search(r'(\d{8})', line)
             if match:
@@ -168,11 +247,12 @@ def fetch_calendar_data():
             current_event['summary'] = line.split(":", 1)[1].strip()
         elif line.startswith("END:VEVENT"):
             if current_event.get('summary') == "🍑" and 'date' in current_event:
-                events.append(current_event['date'])
-    return sorted(events)
+                events.append(current_event)
+    return events
 
 # Load data
-events = fetch_calendar_data()
+raw_events = fetch_calendar_data()
+events = sorted([e['date'] for e in raw_events])
 
 # Create maps for analytical calculations
 date_counts = defaultdict(int)
@@ -285,6 +365,65 @@ def handle_next():
     else:
         st.session_state.cal_month += 1
 
+# Dialog Function for Adding / Updating Peaches
+@st.dialog("Add a Peach 🍑")
+def add_peach_modal():
+    selected_dt = st.date_input("Select Date", value=today)
+    
+    # Get current counts for selected date
+    curr_count = date_counts.get(selected_dt, 0)
+    
+    if "modal_target_count" not in st.session_state or st.session_state.get("modal_date_tracker") != selected_dt:
+        st.session_state.modal_target_count = curr_count
+        st.session_state.modal_date_tracker = selected_dt
+        
+    c_minus, c_display, c_plus = st.columns([1, 1.5, 1], vertical_alignment="center")
+    
+    with c_minus:
+        if st.button("—", key="modal_minus_btn", use_container_width=True):
+            if st.session_state.modal_target_count > 0:
+                st.session_state.modal_target_count -= 1
+                st.rerun()
+                
+    with c_display:
+        st.markdown(f"""
+            <div class="counter-peach-container">
+                <div class="counter-peach-img">🍑</div>
+                <div class="counter-label">Count: {st.session_state.modal_target_count}</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    with c_plus:
+        if st.button("+", key="modal_plus_btn", use_container_width=True):
+            st.session_state.modal_target_count += 1
+            st.rerun()
+            
+    st.divider()
+    
+    col_cancel, col_save = st.columns(2)
+    
+    with col_cancel:
+        if st.button("✕ Cancel", key="btn_cancel_peach", use_container_width=True):
+            if "modal_target_count" in st.session_state:
+                del st.session_state.modal_target_count
+            if "modal_date_tracker" in st.session_state:
+                del st.session_state.modal_date_tracker
+            st.rerun()
+            
+    with col_save:
+        if st.button("✓ Commit", key="btn_commit_peach", use_container_width=True):
+            try:
+                update_peach_events(selected_dt, st.session_state.modal_target_count, raw_events)
+                st.cache_data.clear()
+                if "modal_target_count" in st.session_state:
+                    del st.session_state.modal_target_count
+                if "modal_date_tracker" in st.session_state:
+                    del st.session_state.modal_date_tracker
+                st.success("Updated!")
+                st.rerun()
+            except Exception as err:
+                st.error(f"Error: {err}")
+
 # --- 1. HEADER SECTION ---
 st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
 st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
@@ -342,6 +481,10 @@ for week in month_cal:
 table_html += '</tbody></table>'
 
 st.markdown(table_html, unsafe_allow_html=True)
+
+# "Add a Peach" Button Below Calendar
+if st.button("➕ Add a Peach", key="btn_open_add_modal", use_container_width=True):
+    add_peach_modal()
 
 st.divider()
 
