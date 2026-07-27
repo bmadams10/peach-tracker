@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom Mobile-First CSS
+# Custom Mobile-First CSS & Touch Swipe JavaScript
 st.markdown("""
     <style>
     /* Adjust top padding so title isn't clipped by Streamlit header */
@@ -60,12 +60,48 @@ st.markdown("""
     div[data-testid="stTable"] table {
         font-size: 13px !important;
         width: 100% !important;
+        touch-action: pan-y; /* Allows horizontal swipe detection */
     }
     div[data-testid="stTable"] th, div[data-testid="stTable"] td {
-        padding: 4px 2px !important;
+        padding: 6px 2px !important;
         text-align: center !important;
     }
     </style>
+
+    <script>
+    // Touch Swipe Gesture Listener for Calendar Table
+    document.addEventListener('DOMContentLoaded', () => {
+        let touchstartX = 0;
+        let touchendX = 0;
+        
+        const minSwipeDistance = 50; // Minimum pixel distance required to register swipe
+
+        function handleGesture() {
+            const swipeDistance = touchendX - touchstartX;
+            if (Math.abs(swipeDistance) >= minSwipeDistance) {
+                if (swipeDistance < 0) {
+                    // Swiped Left -> Next Month
+                    window.location.href = '?action=next';
+                } else {
+                    // Swiped Right -> Previous Month
+                    window.location.href = '?action=prev';
+                }
+            }
+        }
+
+        const calTable = document.querySelector('div[data-testid="stTable"]');
+        if (calTable) {
+            calTable.addEventListener('touchstart', e => {
+                touchstartX = e.changedTouches[0].screenX;
+            }, {passive: true});
+
+            calTable.addEventListener('touchend', e => {
+                touchendX = e.changedTouches[0].screenX;
+                handleGesture();
+            }, {passive: true});
+        }
+    });
+    </script>
 """, unsafe_allow_html=True)
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
@@ -119,7 +155,7 @@ if "cal_year" not in st.session_state:
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = datetime.now().month
 
-# Handle Action Buttons for Next/Prev
+# Handle Action Buttons/Swipes for Next/Prev
 query_params = st.query_params
 if "action" in query_params:
     act = query_params["action"]
