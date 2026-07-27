@@ -263,38 +263,36 @@ st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal: {total_2026} / 223 
 
 st.divider()
 
-# --- 5. COMPACT MONTHLY COMPARISON GRID ---
+# --- 5. MONTHLY COMPARISON (JAN-JUN ON LEFT, JUL-DEC ON RIGHT) ---
 st.subheader("🗓️ Monthly Comparison")
 
 current_m = datetime.now().month
+col_left, col_right = st.columns(2)
 
-# Display 12 Months in Pairs of 2
-for m in range(1, 13, 2):
-    c1, c2 = st.columns(2)
-    
-    # Left Month
-    with c1:
-        m_name1 = calendar.month_abbr[m]
-        c25_1 = counts_2025[m]
+# Left Column: January (1) to June (6)
+with col_left:
+    for m in range(1, 7):
+        m_name = calendar.month_abbr[m]
+        c25 = counts_2025[m]
         if m <= current_m:
-            c26_1 = counts_2026[m]
-            diff1 = c26_1 - c25_1
-            st.markdown(f'<div class="month-hdr">{m_name1}</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value=f"{c26_1} 🍑", delta=f"{'+' if diff1 > 0 else ''}{diff1} YoY (2025: {c25_1})")
+            c26 = counts_2026[m]
+            diff = c26 - c25
+            st.markdown(f'<div class="month-hdr">{m_name}</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value=f"{c26} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY (2025: {c25})")
         else:
-            st.markdown(f'<div class="month-hdr">{m_name1} *(Upcoming)*</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25_1}")
+            st.markdown(f'<div class="month-hdr">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25}")
 
-    # Right Month
-    with c2:
-        m2_idx = m + 1
-        m_name2 = calendar.month_abbr[m2_idx]
-        c25_2 = counts_2025[m2_idx]
-        if m2_idx <= current_m:
-            c26_2 = counts_2026[m2_idx]
-            diff2 = c26_2 - c25_2
-            st.markdown(f'<div class="month-hdr">{m_name2}</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value=f"{c26_2} 🍑", delta=f"{'+' if diff2 > 0 else ''}{diff2} YoY (2025: {c25_2})")
+# Right Column: July (7) to December (12)
+with col_right:
+    for m in range(7, 13):
+        m_name = calendar.month_abbr[m]
+        c25 = counts_2025[m]
+        if m <= current_m:
+            c26 = counts_2026[m]
+            diff = c26 - c25
+            st.markdown(f'<div class="month-hdr">{m_name}</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value=f"{c26} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY (2025: {c25})")
         else:
-            st.markdown(f'<div class="month-hdr">{m_name2} *(Upcoming)*</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25_2}")
+            st.markdown(f'<div class="month-hdr">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25}")
