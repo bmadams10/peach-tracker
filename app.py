@@ -16,40 +16,35 @@ st.set_page_config(
 # Custom Mobile-First CSS
 st.markdown("""
     <style>
-    /* Remove excessive top padding on mobile */
+    /* Adjust top padding so top header isn't clipped by Streamlit chrome */
     .block-container {
-        padding-top: 1.5rem !important;
+        padding-top: 3.5rem !important;
         padding-bottom: 2rem !important;
         padding-left: 0.8rem !important;
         padding-right: 0.8rem !important;
     }
     
-    /* Responsive single-line title that scales to viewport without overflow */
+    /* Responsive title fitting mobile screen width cleanly */
     .responsive-title {
-        font-size: clamp(20px, 6.5vw, 38px) !important;
+        font-size: clamp(20px, 6vw, 36px) !important;
         font-weight: 800 !important;
         white-space: nowrap !important;
         margin: 0 !important;
         padding: 0 !important;
-        line-height: 1.2 !important;
+        line-height: 1.3 !important;
     }
 
-    /* Force Calendar Controls into a Single Compact Row */
-    .nav-toolbar {
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        margin-bottom: 12px !important;
-    }
-    
-    .month-label {
+    /* Month label styling for nav row */
+    .month-nav-label {
         font-size: 20px !important;
         font-weight: 700 !important;
-        margin-left: 8px !important;
+        text-align: center !important;
+        margin: 0 !important;
+        padding-top: 4px !important;
         white-space: nowrap !important;
     }
 
-    /* Mobile Calendar Table Styling */
+    /* Compact Mobile Calendar Table */
     div[data-testid="stTable"] table {
         font-size: 13px !important;
         width: 100% !important;
@@ -125,16 +120,10 @@ st.divider()
 # --- 2. CALENDAR TOOLBAR & VIEW ---
 st.subheader("📅 Calendar View")
 
-# Single-row Mobile Navigation Bar
-btn_col1, btn_col2, btn_col3, btn_col4 = st.columns([0.25, 0.15, 0.15, 0.45])
+# Single-row Navigation: [<] [Month Year] [>]
+btn_prev, month_col, btn_next = st.columns([0.2, 0.6, 0.2], vertical_alignment="center")
 
-with btn_col1:
-    if st.button("Today", use_container_width=True):
-        st.session_state.cal_year = datetime.now().year
-        st.session_state.cal_month = datetime.now().month
-        st.rerun()
-
-with btn_col2:
+with btn_prev:
     if st.button("‹", use_container_width=True):
         if st.session_state.cal_month == 1:
             st.session_state.cal_month = 12
@@ -143,7 +132,11 @@ with btn_col2:
             st.session_state.cal_month -= 1
         st.rerun()
 
-with btn_col3:
+with month_col:
+    month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
+    st.markdown(f'<div class="month-nav-label">{month_display}</div>', unsafe_allow_html=True)
+
+with btn_next:
     if st.button("›", use_container_width=True):
         if st.session_state.cal_month == 12:
             st.session_state.cal_month = 1
@@ -151,10 +144,6 @@ with btn_col3:
         else:
             st.session_state.cal_month += 1
         st.rerun()
-
-with btn_col4:
-    month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
-    st.markdown(f'<div class="month-label">{month_display}</div>', unsafe_allow_html=True)
 
 # Render Month Grid Table
 selected_year = st.session_state.cal_year
