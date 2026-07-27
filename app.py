@@ -5,6 +5,9 @@ from datetime import datetime, date
 import calendar
 import streamlit as st
 
+# Set calendar to start week on Sunday
+calendar.setfirstweekday(calendar.SUNDAY)
+
 # 1. Page Configuration & Favicon Icon
 st.set_page_config(
     page_title="PEACH TIME TRACKER", 
@@ -162,12 +165,12 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Render Month Grid Table
+# Render Month Grid Table (Sunday First)
 selected_year = st.session_state.cal_year
 selected_month = st.session_state.cal_month
 
 month_cal = calendar.monthcalendar(selected_year, selected_month)
-days_header = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+days_header = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 grid_data = []
 for week in month_cal:
