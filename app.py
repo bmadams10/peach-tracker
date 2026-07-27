@@ -8,6 +8,12 @@ import streamlit as st
 # Set calendar to start week on Sunday
 calendar.setfirstweekday(calendar.SUNDAY)
 
+# Dynamic Year & Today Definitions
+today = datetime.now().date()
+current_year = today.year
+prev_year = current_year - 1
+current_month = today.month
+
 # 1. Page Configuration & Favicon Icon
 st.set_page_config(
     page_title="PEACH TIME TRACKER", 
@@ -173,25 +179,38 @@ date_counts = defaultdict(int)
 day_of_week_counts = defaultdict(int)
 month_year_counts = defaultdict(int)
 
+counts_prev = defaultdict(int)
+counts_curr = defaultdict(int)
+prev_ytd_count = 0
+
 for d in events:
     date_counts[d] += 1
     day_name = calendar.day_name[d.weekday()]
     day_of_week_counts[day_name] += 1
     month_year_counts[f"{calendar.month_abbr[d.month]} {d.year}"] += 1
+    
+    if d.year == prev_year:
+        counts_prev[d.month] += 1
+        # Calculate YTD comparison up to same day/month of previous year
+        if (d.month < current_month) or (d.month == current_month and d.day <= today.day):
+            prev_ytd_count += 1
+    elif d.year == current_year:
+        counts_curr[d.month] += 1
 
-# Process Annual Counts
-counts_2025 = defaultdict(int)
-counts_2026 = defaultdict(int)
-
-for d in events:
-    if d.year == 2025:
-        counts_2025[d.month] += 1
-    elif d.year == 2026:
-        counts_2026[d.month] += 1
-
-total_2025 = sum(counts_2025.values())
-total_2026 = sum(counts_2026.values())
+total_prev = sum(counts_prev.values())
+total_curr = sum(counts_curr.values())
 total_lifetime = len(events)
+
+# Dynamic Pace & Goal Calculations
+current_week_num = max(1, today.isocalendar()[1])
+weekly_pace = round(total_curr / current_week_num, 2)
+remaining_weeks = max(1, 52 - current_week_num)
+
+goal_4_0 = 209
+pace_needed_4_0 = round(max(0, goal_4_0 - total_curr) / remaining_weeks, 2)
+
+stretch_goal = 223
+pace_needed_stretch = round(max(0, stretch_goal - total_curr) / remaining_weeks, 2)
 
 # Calculate Lifetime Analytics
 if month_year_counts:
@@ -246,11 +265,11 @@ if max_streak_dates:
 else:
     streak_period_str = "—"
 
-# Initialize Calendar Session State Date
+# Initialize Calendar Session State to Always Auto-Show Current Month/Year on Load
 if "cal_year" not in st.session_state:
-    st.session_state.cal_year = datetime.now().year
+    st.session_state.cal_year = current_year
 if "cal_month" not in st.session_state:
-    st.session_state.cal_month = datetime.now().month
+    st.session_state.cal_month = current_month
 
 # Handle Action Buttons/Swipes for Next/Prev
 query_params = st.query_params
@@ -326,18 +345,19 @@ st.table(grid_data)
 
 st.divider()
 
-# --- 3. KEY METRICS (DOUBLE COLUMN) ---
+# --- 3. KEY METRICS (DYNAMIC DOUBLE COLUMN) ---
 st.subheader("📊 Key Metrics")
 
 km_col_left, km_col_right = st.columns(2)
 
-# Left Column: Current 2026 Metrics
+# Left Column: Dynamic Current Year Goals & Pace
 with km_col_left:
-    st.markdown('<div class="metrics-col-hdr">2026 Goals & Pace</div>', unsafe_allow_html=True)
-    st.metric("2026 YTD", f"{total_2026} 🍑", delta=f"+{total_2026 - 75} vs 2025")
-    st.metric("Weekly Pace", f"{round(total_2026 / 30, 2)} / wk")
-    st.metric("4.0/Wk Goal", "209 🍑", delta="4.07/wk needed")
-    st.metric("Stretch Goal", "223 🍑", delta="4.65/wk needed")
+    st.markdown(f'<div class="metrics-col-hdr">{current_year} Goals & Pace</div>', unsafe_allow_html=True)
+    ytd_diff = total_curr - prev_ytd_count
+    st.metric(f"{current_year} YTD", f"{total_curr} 🍑", delta=f"{'+' if ytd_diff > 0 else ''}{ytd_diff} vs {prev_year} YTD")
+    st.metric("Weekly Pace", f"{weekly_pace} / wk")
+    st.metric("4.0/Wk Goal", f"{goal_4_0} 🍑", delta=f"{pace_needed_4_0}/wk needed")
+    st.metric("Stretch Goal", f"{stretch_goal} 🍑", delta=f"{pace_needed_stretch}/wk needed")
 
 # Right Column: Lifetime Insights
 with km_col_right:
@@ -349,36 +369,35 @@ with km_col_right:
 
 st.divider()
 
-# --- 4. MONTHLY COMPARISON (FORCED 2 COLUMNS ON MOBILE) ---
+# --- 4. MONTHLY COMPARISON (DYNAMIC DUAL YEAR COLUMNS) ---
 st.subheader("🗓️ Monthly Comparison")
 
-current_m = datetime.now().month
 col_left, col_right = st.columns(2)
 
 # Left Column: January (1) to June (6)
 with col_left:
     for m in range(1, 7):
         m_name = calendar.month_abbr[m]
-        c25 = counts_2025[m]
-        if m <= current_m:
-            c26 = counts_2026[m]
-            diff = c26 - c25
+        c_prev_val = counts_prev[m]
+        if m <= current_month:
+            c_curr_val = counts_curr[m]
+            diff = c_curr_val - c_prev_val
             st.markdown(f'<div class="month-hdr">{m_name}</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value=f"{c26} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY (2025: {c25})")
+            st.metric(label=f"{current_year} vs {prev_year}", value=f"{c_curr_val} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY ({prev_year}: {c_prev_val})")
         else:
             st.markdown(f'<div class="month-hdr">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25}")
+            st.metric(label=f"{current_year} vs {prev_year}", value="—", delta=f"{prev_year}: {c_prev_val}")
 
 # Right Column: July (7) to December (12)
 with col_right:
     for m in range(7, 13):
         m_name = calendar.month_abbr[m]
-        c25 = counts_2025[m]
-        if m <= current_m:
-            c26 = counts_2026[m]
-            diff = c26 - c25
+        c_prev_val = counts_prev[m]
+        if m <= current_month:
+            c_curr_val = counts_curr[m]
+            diff = c_curr_val - c_prev_val
             st.markdown(f'<div class="month-hdr">{m_name}</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value=f"{c26} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY (2025: {c25})")
+            st.metric(label=f"{current_year} vs {prev_year}", value=f"{c_curr_val} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY ({prev_year}: {c_prev_val})")
         else:
             st.markdown(f'<div class="month-hdr">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
-            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25}")
+            st.metric(label=f"{current_year} vs {prev_year}", value="—", delta=f"{prev_year}: {c_prev_val}")
