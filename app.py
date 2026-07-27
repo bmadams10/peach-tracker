@@ -12,6 +12,26 @@ st.set_page_config(
     layout="wide"
 )
 
+# Custom CSS: Single-line responsive header & Disable typing in Selectboxes
+st.markdown("""
+    <style>
+    /* Responsive single-line title that fills screen width */
+    .responsive-title {
+        font-size: min(4.5vw, 42px);
+        font-weight: 800;
+        white-space: nowrap;
+        margin: 0;
+        padding: 0;
+        line-height: 1.2;
+    }
+    /* Disable text editing/typing in Streamlit selectboxes while keeping click-to-select */
+    div[data-baseweb="select"] input {
+        caret-color: transparent !important;
+        cursor: pointer !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
 # 2. Fetch & Cache Data (Refreshes automatically every 5 minutes)
@@ -60,7 +80,7 @@ total_2026 = sum(counts_2026.values())
 # --- 1. HEADER SECTION ---
 col_title, col_btn = st.columns([0.8, 0.2])
 with col_title:
-    st.title("🍑 PEACH TIME TRACKER")
+    st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
     st.caption(f"Connected Live to Google Calendar | Last Checked: {datetime.now().strftime('%B %d, %Y - %I:%M %p')}")
 with col_btn:
     st.write("")
