@@ -5,6 +5,7 @@ from datetime import datetime, date
 import calendar
 import time
 import streamlit as st
+import streamlit.components.v1 as components
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -224,38 +225,40 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Target Password Inputs to Trigger Numeric Keyboard on Mobile Devices
-st.markdown("""
-    <script>
-    const setNumPad = () => {
-        const passwordInputs = parent.document.querySelectorAll('input[type="password"]');
-        passwordInputs.forEach(input => {
-            input.setAttribute('inputmode', 'numeric');
-            input.setAttribute('pattern', '[0-9]*');
-        });
-    };
-    setInterval(setNumPad, 500);
-    </script>
-""", unsafe_allow_html=True)
-
 # --- PASSWORD LOCK SCREEN DISPLAY ---
 if not st.session_state.authenticated:
-    st.markdown('<h1 class="responsive-title">🔒 PeachTime Lock Screen</h1>', unsafe_allow_html=True)
-    st.caption("Enter your password to unlock the application.")
+    st.markdown('<h1 class="responsive-title">🔒 Tracker Lock Screen</h1>', unsafe_allow_html=True)
+    st.caption("Enter your passcode to unlock.")
     
     with st.form("login_form"):
-        pwd_input = st.text_input("Password", type="password")
-        login_btn = st.form_submit_button("Unlock 🍑", use_container_width=True)
+        pwd_input = st.text_input("Passcode", type="password", key="lock_passcode_field")
+        
+        # Inject JavaScript into Parent DOM to force number pad on mobile
+        components.html("""
+            <script>
+            const forceNumPad = () => {
+                const inputs = window.parent.document.querySelectorAll('input[type="password"]');
+                inputs.forEach(input => {
+                    input.setAttribute('inputmode', 'numeric');
+                    input.setAttribute('pattern', '[0-9]*');
+                });
+            };
+            forceNumPad();
+            setTimeout(forceNumPad, 300);
+            setTimeout(forceNumPad, 800);
+            </script>
+        """, height=0, width=0)
+        
+        login_btn = st.form_submit_button("Unlock", use_container_width=True)
         
         if login_btn:
             expected_pwd = str(st.secrets.get("APP_PASSWORD", "peach123"))
             if str(pwd_input) == expected_pwd:
                 st.session_state.authenticated = True
                 st.session_state.last_activity = time.time()
-                st.success("Unlocked!")
                 st.rerun()
             else:
-                st.error("Incorrect password. Please try again.")
+                st.error("Incorrect passcode. Please try again.")
     st.stop() # Stop execution here so the rest of the app stays completely hidden
 
 # ==============================================================================
