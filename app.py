@@ -16,25 +16,25 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom Mobile-First Ultra-Compact CSS
+# Custom Mobile-First CSS
 st.markdown("""
     <style>
-    /* Global Container Padding Optimization */
+    /* Adjust top padding so title isn't clipped by Streamlit header */
     .block-container {
-        padding-top: 3.2rem !important;
-        padding-bottom: 1.5rem !important;
-        padding-left: 0.6rem !important;
-        padding-right: 0.6rem !important;
+        padding-top: 3.5rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
     }
     
-    /* Header Title Fitting Mobile Screen Cleanly */
+    /* Responsive title fitting mobile screen width cleanly */
     .responsive-title {
-        font-size: clamp(20px, 6vw, 34px) !important;
+        font-size: clamp(20px, 6vw, 36px) !important;
         font-weight: 800 !important;
         white-space: nowrap !important;
         margin: 0 !important;
         padding: 0 !important;
-        line-height: 1.2 !important;
+        line-height: 1.3 !important;
     }
 
     /* Dense Dividers & Subheadings */
@@ -76,57 +76,12 @@ st.markdown("""
         text-align: center !important;
     }
 
-    /* Dense Monthly Comparison Grid */
-    .month-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-        margin-top: 4px;
-    }
-    .month-pill {
-        background-color: #1e1f26;
-        border: 1px solid #31333f;
-        border-radius: 6px;
-        padding: 6px 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-    }
-    .month-pill-name {
-        font-weight: 700;
-        color: #ffffff;
-    }
-    .month-pill-val {
-        font-weight: 600;
-        color: #d1d5db;
-    }
-    .badge-pos {
-        background: #0e3a2f;
-        color: #34d399;
-        font-weight: 700;
-        font-size: 10px;
-        padding: 1px 4px;
-        border-radius: 4px;
-        margin-left: 3px;
-    }
-    .badge-neg {
-        background: #3b181e;
-        color: #f87171;
-        font-weight: 700;
-        font-size: 10px;
-        padding: 1px 4px;
-        border-radius: 4px;
-        margin-left: 3px;
-    }
-    .badge-neutral {
-        background: #2a2d3d;
-        color: #9ca3af;
-        font-weight: 700;
-        font-size: 10px;
-        padding: 1px 4px;
-        border-radius: 4px;
-        margin-left: 3px;
+    /* Compact Month Header Styling */
+    .month-hdr {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #f3f4f6 !important;
+        margin-bottom: 2px !important;
     }
     </style>
 
@@ -308,39 +263,38 @@ st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal: {total_2026} / 223 
 
 st.divider()
 
-# --- 5. CONDENSED MONTHLY COMPARISON GRID ---
+# --- 5. COMPACT MONTHLY COMPARISON GRID ---
 st.subheader("🗓️ Monthly Comparison")
 
 current_m = datetime.now().month
 
-pills_html = '<div class="month-grid">'
-for m in range(1, 13):
-    m_abbr = calendar.month_abbr[m]
-    c_2025 = counts_2025[m]
+# Display 12 Months in Pairs of 2
+for m in range(1, 13, 2):
+    c1, c2 = st.columns(2)
     
-    if m <= current_m:
-        c_2026 = counts_2026[m]
-        diff = c_2026 - c_2025
-        if diff > 0:
-            badge = f'<span class="badge-pos">+{diff}</span>'
-        elif diff < 0:
-            badge = f'<span class="badge-neg">{diff}</span>'
+    # Left Month
+    with c1:
+        m_name1 = calendar.month_abbr[m]
+        c25_1 = counts_2025[m]
+        if m <= current_m:
+            c26_1 = counts_2026[m]
+            diff1 = c26_1 - c25_1
+            st.markdown(f'<div class="month-hdr">{m_name1}</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value=f"{c26_1} 🍑", delta=f"{'+' if diff1 > 0 else ''}{diff1} YoY (2025: {c25_1})")
         else:
-            badge = f'<span class="badge-neutral">0</span>'
-            
-        pills_html += f"""
-            <div class="month-pill">
-                <span class="month-pill-name">{m_abbr}</span>
-                <span class="month-pill-val">'26: <b>{c_2026}</b> | '25: {c_2025}{badge}</span>
-            </div>
-        """
-    else:
-        pills_html += f"""
-            <div class="month-pill" style="opacity: 0.6;">
-                <span class="month-pill-name">{m_abbr}</span>
-                <span class="month-pill-val">'26: — | '25: {c_2025}</span>
-            </div>
-        """
-pills_html += '</div>'
+            st.markdown(f'<div class="month-hdr">{m_name1} *(Upcoming)*</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25_1}")
 
-st.markdown(pills_html, unsafe_allow_html=True)
+    # Right Month
+    with c2:
+        m2_idx = m + 1
+        m_name2 = calendar.month_abbr[m2_idx]
+        c25_2 = counts_2025[m2_idx]
+        if m2_idx <= current_m:
+            c26_2 = counts_2026[m2_idx]
+            diff2 = c26_2 - c25_2
+            st.markdown(f'<div class="month-hdr">{m_name2}</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value=f"{c26_2} 🍑", delta=f"{'+' if diff2 > 0 else ''}{diff2} YoY (2025: {c25_2})")
+        else:
+            st.markdown(f'<div class="month-hdr">{m_name2} *(Upcoming)*</div>', unsafe_allow_html=True)
+            st.metric(label="2026 vs 2025", value="—", delta=f"2025: {c25_2}")
