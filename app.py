@@ -4,8 +4,6 @@ from collections import defaultdict
 from datetime import datetime, date
 import calendar
 import streamlit as st
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
 
 # Set calendar to start week on Sunday
 calendar.setfirstweekday(calendar.SUNDAY)
@@ -18,7 +16,7 @@ current_month = today.month
 
 # 1. Page Configuration & Favicon Icon
 st.set_page_config(
-    page_title="PeachTime", 
+    page_title="PEACH TIME TRACKER", 
     page_icon="🍑", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -27,33 +25,35 @@ st.set_page_config(
 # Custom Mobile-First CSS
 st.markdown("""
     <style>
-    /* Dark Theme Setup */
-    .stApp {
-        background-color: #0d0d0d !important;
-    }
-
+    /* Adjust top padding so title isn't clipped by Streamlit header */
     .block-container {
-        padding-top: 1.5rem !important;
+        padding-top: 3.5rem !important;
         padding-bottom: 2rem !important;
         padding-left: 0.8rem !important;
         padding-right: 0.8rem !important;
     }
-
-    /* PeachTime Native Header Title */
-    .app-title-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1rem;
-    }
+    
+    /* Responsive title fitting mobile screen width cleanly */
     .responsive-title {
-        font-size: 22px !important;
-        font-weight: 700 !important;
-        color: #d1d1d1 !important;
+        font-size: clamp(20px, 6vw, 36px) !important;
+        font-weight: 800 !important;
+        white-space: nowrap !important;
         margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.3 !important;
     }
 
-    /* Single-Row Navigation Toolbar */
+    /* Dense Dividers & Subheadings */
+    hr {
+        margin: 0.8rem 0 !important;
+    }
+    h3 {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.4rem !important;
+        margin-top: 0.2rem !important;
+    }
+
+    /* GUARANTEED SINGLE-ROW TOOLBAR FOR MOBILE */
     div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) {
         display: flex !important;
         flex-direction: row !important;
@@ -61,130 +61,79 @@ st.markdown("""
         align-items: center !important;
         justify-content: space-between !important;
         width: 100% !important;
-        margin-bottom: 16px !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
     }
 
-    .month-nav-label-inline {
-        font-size: 17px !important;
-        font-weight: 500 !important;
-        color: #8e8e93 !important;
-        text-align: center !important;
-    }
-
-    /* Borderless Grid Setup */
-    div[data-testid="stHorizontalBlock"]:has(.weekday-hdr),
-    div[data-testid="stHorizontalBlock"]:has(.cal-date-btn) {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 0px !important;
-    }
-
-    div[data-testid="stHorizontalBlock"]:has(.weekday-hdr) > div,
-    div[data-testid="stHorizontalBlock"]:has(.cal-date-btn) > div {
-        width: 14.28% !important;
+    div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) > div:nth-child(1),
+    div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) > div:nth-child(3) {
+        width: 20% !important;
         min-width: 0 !important;
     }
 
-    .weekday-hdr {
-        text-align: center;
-        font-weight: 500;
-        font-size: 13px;
-        color: #48484a;
-        padding-bottom: 8px;
+    div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) > div:nth-child(2) {
+        width: 60% !important;
+        min-width: 0 !important;
     }
 
-    /* Clean Transparent Date Buttons */
-    .cal-date-btn button {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        color: #d1d1d6 !important;
-        font-size: 15px !important;
-        font-weight: 400 !important;
-        height: 50px !important;
+    .month-nav-label-inline {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
+
+    /* Custom Mobile HTML Calendar Table */
+    .custom-cal-table {
         width: 100% !important;
-        padding: 0 !important;
+        border-collapse: collapse !important;
+        font-size: 12px !important;
+        margin-bottom: 10px !important;
+    }
+    .custom-cal-table th, .custom-cal-table td {
+        border: 1px solid #31333f !important;
+        padding: 6px 2px !important;
+        text-align: center !important;
+        width: 14.28% !important;
+    }
+    .custom-cal-table th {
+        background-color: #1e1f26 !important;
+        color: #f3f4f6 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Yellow Highlight Badge for x2, x3 Multipliers */
+    .mult-badge {
+        background-color: #ffd700 !important;
+        color: #111111 !important;
+        font-weight: 800 !important;
+        padding: 1px 3px !important;
+        border-radius: 4px !important;
+        font-size: 10px !important;
+        margin-left: 2px !important;
+        display: inline-block !important;
+    }
+
+    /* Compact Month Header Styling */
+    .month-hdr {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #f3f4f6 !important;
+        margin-bottom: 2px !important;
+    }
+
+    /* FORCE 2 COLUMNS ON MOBILE SCREENS FOR TWO-COLUMN SECTIONS */
+    div[data-testid="stHorizontalBlock"]:has(.month-hdr),
+    div[data-testid="stHorizontalBlock"]:has(.metrics-col-hdr) {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        line-height: 1.1 !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 10px !important;
     }
-
-    /* Today Active Circular Badge */
-    .cal-date-btn-today button {
-        background-color: #3a4b6e !important;
-        color: #ffffff !important;
-        border-radius: 50% !important;
-        width: 36px !important;
-        height: 36px !important;
-        margin: 0 auto !important;
-    }
-
-    /* Pop-Up Modal Styling matching screenshot */
-    div[data-testid="stModal"] > div {
-        background-color: #121212 !important;
-        border-radius: 24px 24px 0 0 !important;
-        border: none !important;
-        color: #ffffff !important;
-        padding: 20px !important;
-    }
-
-    .modal-title-custom {
-        text-align: center;
-        font-size: 18px;
-        font-weight: 700;
-        color: #ffffff;
-        margin-bottom: 20px;
-    }
-
-    .counter-peach-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-    .counter-peach-img {
-        font-size: 40px;
-        line-height: 1.0;
-    }
-    .counter-label {
-        font-size: 13px;
-        color: #8e8e93;
-        font-weight: 500;
-        margin-top: 4px;
-    }
-
-    /* Round Action Controls (- and +) */
-    div[data-testid="stDialog"] button[key="modal_minus_btn"] {
-        background-color: #2c2c2e !important;
-        color: #8e8e93 !important;
-        border-radius: 50% !important;
-        width: 56px !important;
-        height: 56px !important;
-        font-size: 24px !important;
-        border: none !important;
-        margin: 0 auto !important;
-    }
-
-    div[data-testid="stDialog"] button[key="modal_plus_btn"] {
-        background-color: #f59e0b !important;
-        color: #000000 !important;
-        border-radius: 50% !important;
-        width: 56px !important;
-        height: 56px !important;
-        font-size: 24px !important;
-        border: none !important;
-        font-weight: bold !important;
-        margin: 0 auto !important;
-    }
-
-    .modal-subtext {
-        text-align: center;
-        font-size: 10px;
-        color: #48484a;
-        margin-top: 25px;
+    div[data-testid="stHorizontalBlock"]:has(.month-hdr) > div,
+    div[data-testid="stHorizontalBlock"]:has(.metrics-col-hdr) > div {
+        width: 50% !important;
+        min-width: 0 !important;
     }
 
     .metrics-col-hdr {
@@ -193,52 +142,14 @@ st.markdown("""
         color: #ffa07a !important;
         margin-bottom: 6px !important;
         text-transform: uppercase;
-    }
-
-    .month-hdr {
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        color: #f3f4f6 !important;
+        letter-spacing: 0.5px;
     }
     </style>
 """, unsafe_allow_html=True)
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Google Calendar API Helper Functions
-def get_calendar_service():
-    if "gcp_service_account" not in st.secrets:
-        raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
-    
-    creds_info = st.secrets["gcp_service_account"]
-    credentials = service_account.Credentials.from_service_account_info(
-        creds_info,
-        scopes=["https://www.googleapis.com/auth/calendar"]
-    )
-    return build("calendar", "v3", credentials=credentials)
-
-def update_peach_events(event_date, target_count, current_events):
-    service = get_calendar_service()
-    calendar_id = "bmadams809@gmail.com"
-    
-    existing_event_ids = [e['id'] for e in current_events if e['date'] == event_date]
-    existing_count = len(existing_event_ids)
-    
-    if target_count > existing_count:
-        for _ in range(target_count - existing_count):
-            event_body = {
-                'summary': '🍑',
-                'start': {'date': event_date.strftime('%Y-%m-%d')},
-                'end': {'date': event_date.strftime('%Y-%m-%d')},
-            }
-            service.events().insert(calendarId=calendar_id, body=event_body).execute()
-            
-    elif target_count < existing_count:
-        to_delete = existing_event_ids[:(existing_count - target_count)]
-        for ev_id in to_delete:
-            service.events().delete(calendarId=calendar_id, eventId=ev_id).execute()
-
-# 3. Fetch & Cache Data
+# 2. Fetch & Cache Data
 @st.cache_data(ttl=300)
 def fetch_calendar_data():
     req = urllib.request.Request(ICS_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -249,8 +160,6 @@ def fetch_calendar_data():
     for line in ics_text.splitlines():
         if line.startswith("BEGIN:VEVENT"):
             current_event = {}
-        elif line.startswith("UID:"):
-            current_event['id'] = line.split(":", 1)[1].strip()
         elif line.startswith("DTSTART"):
             match = re.search(r'(\d{8})', line)
             if match:
@@ -259,12 +168,11 @@ def fetch_calendar_data():
             current_event['summary'] = line.split(":", 1)[1].strip()
         elif line.startswith("END:VEVENT"):
             if current_event.get('summary') == "🍑" and 'date' in current_event:
-                events.append(current_event)
-    return events
+                events.append(current_event['date'])
+    return sorted(events)
 
 # Load data
-raw_events = fetch_calendar_data()
-events = sorted([e['date'] for e in raw_events])
+events = fetch_calendar_data()
 
 # Create maps for analytical calculations
 date_counts = defaultdict(int)
@@ -362,10 +270,6 @@ if "cal_year" not in st.session_state:
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = current_month
 
-# Active Selected Date for Edit Modal
-if "active_date" not in st.session_state:
-    st.session_state.active_date = None
-
 # Direct State Mutation Functions
 def handle_prev():
     if st.session_state.cal_month == 1:
@@ -382,16 +286,22 @@ def handle_next():
         st.session_state.cal_month += 1
 
 # --- 1. HEADER SECTION ---
-st.markdown("""
-    <div class="app-title-container">
-        <div class="responsive-title">PeachTime</div>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
+st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
 
-# --- 2. CALENDAR TOOLBAR & BORDERLESS GRID ---
-month_display = f"{calendar.month_name[st.session_state.cal_month]} {st.session_state.cal_year}"
+if st.button("🔄 Force Refresh", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
 
-col_prev, col_label, col_next = st.columns([1, 4, 1])
+st.divider()
+
+# --- 2. CALENDAR TOOLBAR & VIEW ---
+st.subheader("📅 Calendar View")
+
+month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
+
+# Native Streamlit Columns forced to 1-line via CSS
+col_prev, col_label, col_next = st.columns([1, 3, 1])
 
 with col_prev:
     st.button("‹", key="btn_prev_month", on_click=handle_prev, use_container_width=True)
@@ -402,89 +312,40 @@ with col_label:
 with col_next:
     st.button("›", key="btn_next_month", on_click=handle_next, use_container_width=True)
 
-# Render Weekday Headers
-days_header = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-hdr_cols = st.columns(7)
-for idx, dh in enumerate(days_header):
-    hdr_cols[idx].markdown(f'<div class="weekday-hdr">{dh}</div>', unsafe_allow_html=True)
-
-# Render Borderless Calendar Grid
+# Render HTML Month Grid Table
 selected_year = st.session_state.cal_year
 selected_month = st.session_state.cal_month
+
 month_cal = calendar.monthcalendar(selected_year, selected_month)
+days_header = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+table_html = '<table class="custom-cal-table"><thead><tr>'
+for dh in days_header:
+    table_html += f'<th>{dh}</th>'
+table_html += '</tr></thead><tbody>'
 
 for week in month_cal:
-    week_cols = st.columns(7)
-    for i, day in enumerate(week):
-        with week_cols[i]:
-            if day == 0:
-                st.write("")
+    table_html += '<tr>'
+    for day in week:
+        if day == 0:
+            table_html += '<td></td>'
+        else:
+            curr_date = date(selected_year, selected_month, day)
+            count = date_counts.get(curr_date, 0)
+            if count == 1:
+                table_html += f'<td>{day}🍑</td>'
+            elif count > 1:
+                table_html += f'<td>{day}🍑<span class="mult-badge">x{count}</span></td>'
             else:
-                curr_date = date(selected_year, selected_month, day)
-                count = date_counts.get(curr_date, 0)
-                
-                # Format Peach Subtext
-                peach_str = "🍑" * min(count, 2) if count > 0 else ""
-                btn_label = f"{day}\n{peach_str}" if peach_str else f"{day}"
-                
-                # CSS Class Selector
-                css_class = "cal-date-btn"
-                if curr_date == today:
-                    css_class += " cal-date-btn-today"
-                
-                st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-                if st.button(btn_label, key=f"day_{curr_date}", use_container_width=True):
-                    st.session_state.active_date = curr_date
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+                table_html += f'<td>{day}</td>'
+    table_html += '</tr>'
+table_html += '</tbody></table>'
 
-# --- 3. EXACT MODAL OVERLAY (MATCHING SCREENSHOT) ---
-if st.session_state.active_date is not None:
-    target_dt = st.session_state.active_date
-    current_cnt = date_counts.get(target_dt, 0)
-    
-    @st.dialog(" ")
-    def edit_modal():
-        st.markdown(f'<div class="modal-title-custom">{target_dt.strftime("%B %d, %Y")}</div>', unsafe_allow_html=True)
-        
-        c_minus, c_display, c_plus = st.columns([1, 1.5, 1], vertical_alignment="center")
-        
-        with c_minus:
-            if st.button("—", key="modal_minus_btn", use_container_width=True):
-                if current_cnt > 0:
-                    try:
-                        update_peach_events(target_dt, current_cnt - 1, raw_events)
-                        st.cache_data.clear()
-                        st.session_state.active_date = None
-                        st.rerun()
-                    except Exception as err:
-                        st.error(f"Error: {err}")
-                        
-        with c_display:
-            st.markdown(f"""
-                <div class="counter-peach-container">
-                    <div class="counter-peach-img">🍑</div>
-                    <div class="counter-label">Count: {current_cnt}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-        with c_plus:
-            if st.button("+", key="modal_plus_btn", use_container_width=True):
-                try:
-                    update_peach_events(target_dt, current_cnt + 1, raw_events)
-                    st.cache_data.clear()
-                    st.session_state.active_date = None
-                    st.rerun()
-                except Exception as err:
-                    st.error(f"Error: {err}")
-                    
-        st.markdown('<div class="modal-subtext">Updates synced to Google Calendar</div>', unsafe_allow_html=True)
-        
-    edit_modal()
+st.markdown(table_html, unsafe_allow_html=True)
 
 st.divider()
 
-# --- 4. KEY METRICS (DYNAMIC DOUBLE COLUMN) ---
+# --- 3. KEY METRICS (DYNAMIC DOUBLE COLUMN) ---
 st.subheader("📊 Key Metrics")
 
 km_col_left, km_col_right = st.columns(2)
@@ -508,7 +369,7 @@ with km_col_right:
 
 st.divider()
 
-# --- 5. MONTHLY COMPARISON (DYNAMIC DUAL YEAR COLUMNS) ---
+# --- 4. MONTHLY COMPARISON (DYNAMIC DUAL YEAR COLUMNS) ---
 st.subheader("🗓️ Monthly Comparison")
 
 col_left, col_right = st.columns(2)
