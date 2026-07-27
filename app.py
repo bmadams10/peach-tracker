@@ -85,34 +85,46 @@ st.markdown("""
         white-space: nowrap !important;
     }
 
-    /* Calendar Grid styling for popovers */
+    /* FORCE CALENDAR GRID COLUMNS TO STAY HORIZONTAL ON MOBILE */
+    div[data-testid="stHorizontalBlock"]:has(.weekday-hdr),
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stPopover"]) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 2px !important;
+        margin-bottom: 2px !important;
+    }
+
+    div[data-testid="stHorizontalBlock"]:has(.weekday-hdr) > div,
+    div[data-testid="stHorizontalBlock"]:has(div[data-testid="stPopover"]) > div {
+        width: 14.28% !important;
+        min-width: 0 !important;
+    }
+
+    /* Clean Tile Buttons inside Calendar Popovers */
+    div[data-testid="stPopover"] {
+        width: 100% !important;
+    }
     div[data-testid="stPopover"] > button {
         width: 100% !important;
-        height: 48px !important;
-        padding: 2px !important;
-        font-size: 12px !important;
+        height: 44px !important;
+        padding: 0px !important;
+        font-size: 11px !important;
         border: 1px solid #31333f !important;
         border-radius: 4px !important;
         background-color: #0e1117 !important;
         color: #ffffff !important;
     }
+    div[data-testid="stPopover"] > button svg {
+        display: none !important; /* Hide default popover arrow SVG */
+    }
 
     .weekday-hdr {
         text-align: center;
         font-weight: 700;
-        font-size: 12px;
+        font-size: 11px;
         color: #f3f4f6;
-        padding-bottom: 4px;
-    }
-
-    /* Yellow Highlight Badge for x2, x3 Multipliers */
-    .mult-badge {
-        background-color: #ffd700 !important;
-        color: #111111 !important;
-        font-weight: 800 !important;
-        padding: 1px 3px !important;
-        border-radius: 4px !important;
-        font-size: 10px !important;
+        padding-bottom: 2px;
     }
 
     /* Compact Month Header Styling */
@@ -166,12 +178,10 @@ def update_peach_events(event_date, target_count, current_events):
     service = get_calendar_service()
     calendar_id = "bmadams809@gmail.com"
     
-    # Filter event list for entries on this target date
     existing_event_ids = [e['id'] for e in current_events if e['date'] == event_date]
     existing_count = len(existing_event_ids)
     
     if target_count > existing_count:
-        # Add missing events
         for _ in range(target_count - existing_count):
             event_body = {
                 'summary': '🍑',
@@ -181,7 +191,6 @@ def update_peach_events(event_date, target_count, current_events):
             service.events().insert(calendarId=calendar_id, body=event_body).execute()
             
     elif target_count < existing_count:
-        # Remove excess events
         to_delete = existing_event_ids[:(existing_count - target_count)]
         for ev_id in to_delete:
             service.events().delete(calendarId=calendar_id, eventId=ev_id).execute()
@@ -374,9 +383,9 @@ for week in month_cal:
                 
                 # Format Tile Label
                 if count == 1:
-                    label = f"{day}🍑"
+                    label = f"{day} 🍑"
                 elif count > 1:
-                    label = f"{day}🍑x{count}"
+                    label = f"{day} 🍑x{count}"
                 else:
                     label = str(day)
                 
@@ -408,7 +417,6 @@ for week in month_cal:
                                 st.error(f"Error: {err}")
                                 
                     with btn_col2:
-                        # Clicking cancel or anywhere outside closes the popover automatically
                         st.button("✕", key=f"cancel_{curr_date}", use_container_width=True)
 
 st.divider()
