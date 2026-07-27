@@ -206,14 +206,22 @@ st.markdown("""
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Google Calendar API Helper Functions
+# 2. Google Calendar API Helper Functions (With Token URI Fallback)
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
-    creds_info = st.secrets["gcp_service_account"]
+    # Convert secrets AttrDict to standard python dict
+    creds_dict = dict(st.secrets["gcp_service_account"])
+    
+    # Fallback default values if missing in secrets
+    if "token_uri" not in creds_dict:
+        creds_dict["token_uri"] = "https://oauth2.googleapis.com/token"
+    if "auth_uri" not in creds_dict:
+        creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
+
     credentials = service_account.Credentials.from_service_account_info(
-        creds_info,
+        creds_dict,
         scopes=["https://www.googleapis.com/auth/calendar"]
     )
     return build("calendar", "v3", credentials=credentials)
