@@ -60,11 +60,26 @@ st.markdown("""
     div[data-testid="stTable"] table {
         font-size: 13px !important;
         width: 100% !important;
-        touch-action: pan-y; /* Allows horizontal swipe detection */
+        touch-action: pan-y;
     }
     div[data-testid="stTable"] th, div[data-testid="stTable"] td {
         padding: 6px 2px !important;
         text-align: center !important;
+    }
+
+    /* Compact Month Cards Styling */
+    .month-card {
+        background-color: #1e1f26;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border: 1px solid #31333f;
+    }
+    .month-card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 4px;
     }
     </style>
 
@@ -74,16 +89,14 @@ st.markdown("""
         let touchstartX = 0;
         let touchendX = 0;
         
-        const minSwipeDistance = 50; // Minimum pixel distance required to register swipe
+        const minSwipeDistance = 50;
 
         function handleGesture() {
             const swipeDistance = touchendX - touchstartX;
             if (Math.abs(swipeDistance) >= minSwipeDistance) {
                 if (swipeDistance < 0) {
-                    // Swiped Left -> Next Month
                     window.location.href = '?action=next';
                 } else {
-                    // Swiped Right -> Previous Month
                     window.location.href = '?action=prev';
                 }
             }
@@ -250,15 +263,29 @@ st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal: {total_2026} / 223 
 
 st.divider()
 
-# --- 5. MONTHLY COMPARISON BREAKDOWN ---
-st.subheader("🗓️ Monthly Breakdown")
-table_data = []
+# --- 5. REIMAGINED MONTHLY BREAKDOWN (COMPACT CARDS) ---
+st.subheader("🗓️ Monthly Comparison")
+
+current_m = datetime.now().month
 
 for m in range(1, 13):
-    table_data.append({
-        "Month": calendar.month_abbr[m],
-        "2025 🍑": counts_2025[m],
-        "2026 🍑": counts_2026[m] if m <= 7 else "—"
-    })
-
-st.dataframe(table_data, use_container_width=True)
+    m_name = calendar.month_name[m]
+    c_2025 = counts_2025[m]
+    
+    with st.container():
+        if m <= current_m:
+            c_2026 = counts_2026[m]
+            diff = c_2026 - c_2025
+            delta_str = f"+{diff}" if diff > 0 else (str(diff) if diff < 0 else "0")
+            
+            st.markdown(f'<div class="month-card-title">{m_name}</div>', unsafe_allow_html=True)
+            col_a, col_b = st.columns(2)
+            col_a.metric("2026 🍑", f"{c_2026}", delta=f"{delta_str} YoY")
+            col_b.metric("2025 🍑", f"{c_2025}")
+        else:
+            st.markdown(f'<div class="month-card-title">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
+            col_a, col_b = st.columns(2)
+            col_a.metric("2026 🍑", "—")
+            col_b.metric("2025 🍑", f"{c_2025}")
+        
+        st.write("")
