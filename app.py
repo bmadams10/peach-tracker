@@ -206,29 +206,25 @@ st.markdown("""
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Google Calendar API Helper Functions (With Advanced Key Cleaning)
+# 2. Google Calendar API Helper Functions (With Clean ID Extractor for Deletions)
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Fallback default endpoints
     if "token_uri" not in creds_dict:
         creds_dict["token_uri"] = "https://oauth2.googleapis.com/token"
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
-    # Sanitize and clean private_key string
     if "private_key" in creds_dict:
         key_str = str(creds_dict["private_key"]).strip()
-        # Remove literal quotes wrapping the string if present
         if key_str.startswith('"') and key_str.endswith('"'):
             key_str = key_str[1:-1]
         elif key_str.startswith("'") and key_str.endswith("'"):
             key_str = key_str[1:-1]
             
-        # Convert literal string '\n' into actual newlines
         key_str = key_str.replace("\\n", "\n")
         creds_dict["private_key"] = key_str.strip()
 
@@ -257,7 +253,9 @@ def update_peach_events(event_date, target_count, current_events):
     elif target_count < existing_count:
         to_delete = existing_event_ids[:(existing_count - target_count)]
         for ev_id in to_delete:
-            service.events().delete(calendarId=calendar_id, eventId=ev_id).execute()
+            # Strip @google.com from the ICAL UID so Google API accepts it
+            clean_id = ev_id.split('@')[0]
+            service.events().delete(calendarId=calendar_id, eventId=clean_id).execute()
 
 # 3. Fetch & Cache Data
 @st.cache_data(ttl=300)
