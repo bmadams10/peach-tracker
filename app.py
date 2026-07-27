@@ -16,7 +16,7 @@ st.set_page_config(
 # Custom Mobile-First CSS
 st.markdown("""
     <style>
-    /* Adjust top padding so top header isn't clipped by Streamlit chrome */
+    /* Adjust top padding so title isn't clipped by Streamlit header */
     .block-container {
         padding-top: 3.5rem !important;
         padding-bottom: 2rem !important;
@@ -34,14 +34,23 @@ st.markdown("""
         line-height: 1.3 !important;
     }
 
-    /* Month label styling for nav row */
-    .month-nav-label {
-        font-size: 20px !important;
+    /* FORCED SINGLE ROW TOOLBAR FOR MOBILE */
+    .nav-toolbar-container {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        margin-top: 10px !important;
+        margin-bottom: 15px !important;
+    }
+
+    /* Month label styling */
+    .month-nav-label-inline {
+        font-size: 22px !important;
         font-weight: 700 !important;
         text-align: center !important;
-        margin: 0 !important;
-        padding-top: 4px !important;
-        white-space: nowrap !important;
+        flex-grow: 1 !important;
     }
 
     /* Compact Mobile Calendar Table */
@@ -58,7 +67,7 @@ st.markdown("""
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Fetch & Cache Data (Refreshes automatically every 5 minutes)
+# 2. Fetch & Cache Data
 @st.cache_data(ttl=300)
 def fetch_calendar_data():
     req = urllib.request.Request(ICS_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -107,6 +116,24 @@ if "cal_year" not in st.session_state:
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = datetime.now().month
 
+# Handle Action Buttons for Next/Prev
+query_params = st.query_params
+if "action" in query_params:
+    act = query_params["action"]
+    if act == "prev":
+        if st.session_state.cal_month == 1:
+            st.session_state.cal_month = 12
+            st.session_state.cal_year -= 1
+        else:
+            st.session_state.cal_month -= 1
+    elif act == "next":
+        if st.session_state.cal_month == 12:
+            st.session_state.cal_month = 1
+            st.session_state.cal_year += 1
+        else:
+            st.session_state.cal_month += 1
+    st.query_params.clear()
+
 # --- 1. HEADER SECTION ---
 st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
 st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
@@ -120,30 +147,20 @@ st.divider()
 # --- 2. CALENDAR TOOLBAR & VIEW ---
 st.subheader("📅 Calendar View")
 
-# Single-row Navigation: [<] [Month Year] [>]
-btn_prev, month_col, btn_next = st.columns([0.2, 0.6, 0.2], vertical_alignment="center")
+month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
 
-with btn_prev:
-    if st.button("‹", use_container_width=True):
-        if st.session_state.cal_month == 1:
-            st.session_state.cal_month = 12
-            st.session_state.cal_year -= 1
-        else:
-            st.session_state.cal_month -= 1
-        st.rerun()
-
-with month_col:
-    month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
-    st.markdown(f'<div class="month-nav-label">{month_display}</div>', unsafe_allow_html=True)
-
-with btn_next:
-    if st.button("›", use_container_width=True):
-        if st.session_state.cal_month == 12:
-            st.session_state.cal_month = 1
-            st.session_state.cal_year += 1
-        else:
-            st.session_state.cal_month += 1
-        st.rerun()
+# Custom HTML Container forcing 1 horizontal row on mobile
+st.markdown(f"""
+    <div class="nav-toolbar-container">
+        <a href="?action=prev" target="_self" style="text-decoration: none;">
+            <button style="width: 50px; height: 38px; font-size: 20px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">‹</button>
+        </a>
+        <div class="month-nav-label-inline">{month_display}</div>
+        <a href="?action=next" target="_self" style="text-decoration: none;">
+            <button style="width: 50px; height: 38px; font-size: 20px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">›</button>
+        </a>
+    </div>
+""", unsafe_allow_html=True)
 
 # Render Month Grid Table
 selected_year = st.session_state.cal_year
