@@ -9,24 +9,54 @@ import streamlit as st
 st.set_page_config(
     page_title="PEACH TIME TRACKER", 
     page_icon="🍑", 
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for single-line title & navigation button styling
+# Custom Mobile-First CSS
 st.markdown("""
     <style>
-    .responsive-title {
-        font-size: min(4.5vw, 42px);
-        font-weight: 800;
-        white-space: nowrap;
-        margin: 0;
-        padding: 0;
-        line-height: 1.2;
+    /* Remove excessive top padding on mobile */
+    .block-container {
+        padding-top: 1.5rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
     }
+    
+    /* Responsive single-line title that scales to viewport without overflow */
+    .responsive-title {
+        font-size: clamp(20px, 6.5vw, 38px) !important;
+        font-weight: 800 !important;
+        white-space: nowrap !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 1.2 !important;
+    }
+
+    /* Force Calendar Controls into a Single Compact Row */
+    .nav-toolbar {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+    }
+    
     .month-label {
-        font-size: 24px;
-        font-weight: 600;
-        margin-left: 10px;
+        font-size: 20px !important;
+        font-weight: 700 !important;
+        margin-left: 8px !important;
+        white-space: nowrap !important;
+    }
+
+    /* Mobile Calendar Table Styling */
+    div[data-testid="stTable"] table {
+        font-size: 13px !important;
+        width: 100% !important;
+    }
+    div[data-testid="stTable"] th, div[data-testid="stTable"] td {
+        padding: 4px 2px !important;
+        text-align: center !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -83,32 +113,29 @@ if "cal_month" not in st.session_state:
     st.session_state.cal_month = datetime.now().month
 
 # --- 1. HEADER SECTION ---
-col_title, col_btn = st.columns([0.8, 0.2])
-with col_title:
-    st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
-    st.caption(f"Connected Live to Google Calendar | Last Checked: {datetime.now().strftime('%B %d, %Y - %I:%M %p')}")
-with col_btn:
-    st.write("")
-    if st.button("🔄 Force Refresh"):
-        st.cache_data.clear()
-        st.rerun()
+st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
+st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
+
+if st.button("🔄 Force Refresh", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
 
 st.divider()
 
 # --- 2. CALENDAR TOOLBAR & VIEW ---
-st.subheader("📅 Interactive 🍑 Calendar View")
+st.subheader("📅 Calendar View")
 
-# Custom Navigation Bar: [Today] [<] [>] Month Year
-c_today, c_prev, c_next, c_label, _ = st.columns([0.1, 0.05, 0.05, 0.4, 0.4])
+# Single-row Mobile Navigation Bar
+btn_col1, btn_col2, btn_col3, btn_col4 = st.columns([0.25, 0.15, 0.15, 0.45])
 
-with c_today:
-    if st.button("Today"):
+with btn_col1:
+    if st.button("Today", use_container_width=True):
         st.session_state.cal_year = datetime.now().year
         st.session_state.cal_month = datetime.now().month
         st.rerun()
 
-with c_prev:
-    if st.button("‹"):
+with btn_col2:
+    if st.button("‹", use_container_width=True):
         if st.session_state.cal_month == 1:
             st.session_state.cal_month = 12
             st.session_state.cal_year -= 1
@@ -116,8 +143,8 @@ with c_prev:
             st.session_state.cal_month -= 1
         st.rerun()
 
-with c_next:
-    if st.button("›"):
+with btn_col3:
+    if st.button("›", use_container_width=True):
         if st.session_state.cal_month == 12:
             st.session_state.cal_month = 1
             st.session_state.cal_year += 1
@@ -125,9 +152,9 @@ with c_next:
             st.session_state.cal_month += 1
         st.rerun()
 
-with c_label:
-    month_display = f"{calendar.month_name[st.session_state.cal_month]} {st.session_state.cal_year}"
-    st.markdown(f'<span class="month-label">{month_display}</span>', unsafe_allow_html=True)
+with btn_col4:
+    month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
+    st.markdown(f'<div class="month-label">{month_display}</div>', unsafe_allow_html=True)
 
 # Render Month Grid Table
 selected_year = st.session_state.cal_year
@@ -147,9 +174,9 @@ for week in month_cal:
             curr_date = date(selected_year, selected_month, day)
             count = date_counts.get(curr_date, 0)
             if count == 1:
-                week_row[day_name] = f"{day} 🍑"
+                week_row[day_name] = f"{day}🍑"
             elif count > 1:
-                week_row[day_name] = f"{day} 🍑x{count}"
+                week_row[day_name] = f"{day}🍑x{count}"
             else:
                 week_row[day_name] = str(day)
     grid_data.append(week_row)
@@ -158,30 +185,33 @@ st.table(grid_data)
 
 st.divider()
 
-# --- 3. KEY METRICS ROW ---
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("2026 YTD Total", f"{total_2026} 🍑", delta=f"+{total_2026 - 75} vs 2025 YTD")
-m2.metric("Current Weekly Pace", f"{round(total_2026 / 30, 2)} / wk")
-m3.metric("4.0/Wk Target Goal", "209 🍑", delta="Pace: 4.07/wk needed")
-m4.metric("Stretch Goal (+25%)", "223 🍑", delta="Pace: 4.65/wk needed")
+# --- 3. KEY METRICS ---
+st.subheader("📊 Key Metrics")
+m1, m2 = st.columns(2)
+m1.metric("2026 YTD", f"{total_2026} 🍑", delta=f"+{total_2026 - 75} vs 2025")
+m2.metric("Weekly Pace", f"{round(total_2026 / 30, 2)} / wk")
+
+m3, m4 = st.columns(2)
+m3.metric("4.0/Wk Goal", "209 🍑", delta="4.07/wk needed")
+m4.metric("Stretch Goal", "223 🍑", delta="4.65/wk needed")
 
 st.divider()
 
 # --- 4. TARGETS PROGRESS BARS ---
-st.subheader("🎯 2026 Target Tracking")
-st.progress(min(total_2026 / 202, 1.0), text=f"Real Goal (202 Total): {total_2026} / 202 🍑 ({round((total_2026/202)*100, 1)}%)")
-st.progress(min(total_2026 / 209, 1.0), text=f"4.0/Wk Milestone (209 Total): {total_2026} / 209 🍑 ({round((total_2026/209)*100, 1)}%)")
-st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal (223 Total): {total_2026} / 223 🍑 ({round((total_2026/223)*100, 1)}%)")
+st.subheader("🎯 2026 Progress")
+st.progress(min(total_2026 / 202, 1.0), text=f"Real Goal: {total_2026} / 202 🍑 ({round((total_2026/202)*100, 1)}%)")
+st.progress(min(total_2026 / 209, 1.0), text=f"4.0/Wk Goal: {total_2026} / 209 🍑 ({round((total_2026/209)*100, 1)}%)")
+st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal: {total_2026} / 223 🍑 ({round((total_2026/223)*100, 1)}%)")
 
 st.divider()
 
 # --- 5. MONTHLY COMPARISON BREAKDOWN ---
-st.subheader("🗓️ Monthly Comparison Breakdown")
+st.subheader("🗓️ Monthly Breakdown")
 table_data = []
 
 for m in range(1, 13):
     table_data.append({
-        "Month": calendar.month_name[m],
+        "Month": calendar.month_abbr[m],
         "2025 🍑": counts_2025[m],
         "2026 🍑": counts_2026[m] if m <= 7 else "—"
     })
