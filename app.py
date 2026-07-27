@@ -206,19 +206,27 @@ st.markdown("""
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Google Calendar API Helper Functions (With Token URI Fallback)
+# 2. Google Calendar API Helper Functions (With Automatic PEM Key Sanitizer)
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
-    # Convert secrets AttrDict to standard python dict
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Fallback default values if missing in secrets
+    # Fallback default endpoints
     if "token_uri" not in creds_dict:
         creds_dict["token_uri"] = "https://oauth2.googleapis.com/token"
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
+
+    # Sanitize and fix raw escaped private keys from Streamlit secrets
+    if "private_key" in creds_dict:
+        key_str = creds_dict["private_key"]
+        # Replace literal '\n' text strings with real newlines
+        key_str = key_str.replace("\\n", "\n")
+        # Ensure correct PEM framing quotes/trim
+        key_str = key_str.strip()
+        creds_dict["private_key"] = key_str
 
     credentials = service_account.Credentials.from_service_account_info(
         creds_dict,
