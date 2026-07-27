@@ -3,12 +3,16 @@ import re
 from collections import defaultdict
 from datetime import datetime, date
 import calendar
+import time
 import streamlit as st
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # Set calendar to start week on Sunday
 calendar.setfirstweekday(calendar.SUNDAY)
+
+# Configuration: Auto-lock timeout duration (in minutes)
+TIMEOUT_MINUTES = 15
 
 # Dynamic Year & Today Definitions
 today = datetime.now().date()
@@ -23,6 +27,22 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Initialize Authentication State
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "last_activity" not in st.session_state:
+    st.session_state.last_activity = time.time()
+
+# Check for Auto-Lock Timeout
+if st.session_state.authenticated:
+    elapsed_minutes = (time.time() - st.session_state.last_activity) / 60
+    if elapsed_minutes > TIMEOUT_MINUTES:
+        st.session_state.authenticated = False
+        st.warning(f"🔒 App locked due to {TIMEOUT_MINUTES} minutes of inactivity.")
+
+# Reset Activity Timer on any action
+st.session_state.last_activity = time.time()
 
 # Custom Mobile-First CSS
 st.markdown("""
@@ -204,9 +224,33 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- PASSWORD LOCK SCREEN DISPLAY ---
+if not st.session_state.authenticated:
+    st.markdown('<h1 class="responsive-title">🔒 PeachTime Lock Screen</h1>', unsafe_allow_html=True)
+    st.caption("Enter your password to unlock the application.")
+    
+    with st.form("login_form"):
+        pwd_input = st.text_input("Password", type="password")
+        login_btn = st.form_submit_button("Unlock 🍑", use_container_width=True)
+        
+        if login_btn:
+            expected_pwd = st.secrets.get("APP_PASSWORD", "peach123")
+            if pwd_input == expected_pwd:
+                st.session_state.authenticated = True
+                st.session_state.last_activity = time.time()
+                st.success("Unlocked!")
+                st.rerun()
+            else:
+                st.error("Incorrect password. Please try again.")
+    st.stop() # Stop execution here so the rest of the app stays completely hidden
+
+# ==============================================================================
+# MAIN APP CODE (Only runs when authenticated)
+# ==============================================================================
+
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Google Calendar API Helper Functions (With Clean ID Extractor for Deletions)
+# 2. Google Calendar API Helper Functions (With Advanced Key Cleaning)
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
@@ -253,7 +297,6 @@ def update_peach_events(event_date, target_count, current_events):
     elif target_count < existing_count:
         to_delete = existing_event_ids[:(existing_count - target_count)]
         for ev_id in to_delete:
-            # Strip @google.com from the ICAL UID so Google API accepts it
             clean_id = ev_id.split('@')[0]
             service.events().delete(calendarId=calendar_id, eventId=clean_id).execute()
 
@@ -400,18 +443,20 @@ def handle_next():
     else:
         st.session_state.cal_month += 1
 
+def logout():
+    st.session_state.authenticated = False
+    st.rerun()
+
 # Dialog Function for Adding / Updating Peaches
 @st.dialog("Add a 🍑")
 def add_peach_modal():
     selected_dt = st.date_input("Select Date", value=today)
     
-    # Check if target date changed
     curr_count = date_counts.get(selected_dt, 0)
     if "modal_target_count" not in st.session_state or st.session_state.get("modal_date_tracker") != selected_dt:
         st.session_state.modal_target_count = curr_count
         st.session_state.modal_date_tracker = selected_dt
         
-    # Stacked Controls: + Button top, Peach & Count middle, - Button bottom
     if st.button("+", key="modal_plus_btn", use_container_width=True):
         st.session_state.modal_target_count += 1
         st.rerun()
@@ -430,7 +475,6 @@ def add_peach_modal():
 
     st.divider()
     
-    # 1-Row Action Buttons: ✕ (Cancel) and ✓ (Commit)
     col_cancel, col_save = st.columns(2)
     
     with col_cancel:
@@ -457,8 +501,14 @@ def add_peach_modal():
                 st.error(f"Error: {err}")
 
 # --- 1. HEADER SECTION ---
-st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
-st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
+h_left, h_right = st.columns([0.8, 0.2], vertical_alignment="center")
+
+with h_left:
+    st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
+    st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
+
+with h_right:
+    st.button("🔒 Lock", on_click=logout, use_container_width=True)
 
 if st.button("🔄 Force Refresh", use_container_width=True):
     st.cache_data.clear()
@@ -471,7 +521,6 @@ st.subheader("📅 Calendar View")
 
 month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
 
-# Native Streamlit Columns forced to 1-line via CSS
 col_prev, col_label, col_next = st.columns([1, 3, 1])
 
 with col_prev:
