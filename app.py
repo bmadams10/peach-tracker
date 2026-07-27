@@ -54,21 +54,32 @@ st.markdown("""
     }
 
     /* GUARANTEED SINGLE-ROW TOOLBAR FOR MOBILE */
-    .nav-toolbar-container {
+    div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) {
         display: flex !important;
         flex-direction: row !important;
+        flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
         width: 100% !important;
-        margin-top: 4px !important;
+        gap: 8px !important;
         margin-bottom: 12px !important;
+    }
+
+    div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) > div:nth-child(1),
+    div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) > div:nth-child(3) {
+        width: 20% !important;
+        min-width: 0 !important;
+    }
+
+    div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) > div:nth-child(2) {
+        width: 60% !important;
+        min-width: 0 !important;
     }
 
     .month-nav-label-inline {
         font-size: 20px !important;
         font-weight: 700 !important;
         text-align: center !important;
-        flex-grow: 1 !important;
         white-space: nowrap !important;
     }
 
@@ -259,23 +270,20 @@ if "cal_year" not in st.session_state:
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = current_month
 
-# Handle Action Buttons for Next/Prev Month via Query Parameters
-query_params = st.query_params
-if "action" in query_params:
-    act = query_params["action"]
-    if act == "prev":
-        if st.session_state.cal_month == 1:
-            st.session_state.cal_month = 12
-            st.session_state.cal_year -= 1
-        else:
-            st.session_state.cal_month -= 1
-    elif act == "next":
-        if st.session_state.cal_month == 12:
-            st.session_state.cal_month = 1
-            st.session_state.cal_year += 1
-        else:
-            st.session_state.cal_month += 1
-    st.query_params.clear()
+# Direct State Mutation Functions
+def handle_prev():
+    if st.session_state.cal_month == 1:
+        st.session_state.cal_month = 12
+        st.session_state.cal_year -= 1
+    else:
+        st.session_state.cal_month -= 1
+
+def handle_next():
+    if st.session_state.cal_month == 12:
+        st.session_state.cal_month = 1
+        st.session_state.cal_year += 1
+    else:
+        st.session_state.cal_month += 1
 
 # --- 1. HEADER SECTION ---
 st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
@@ -292,18 +300,17 @@ st.subheader("📅 Calendar View")
 
 month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
 
-# Guaranteed 1-row Toolbar using HTML Container
-st.markdown(f"""
-    <div class="nav-toolbar-container">
-        <a href="?action=prev" target="_self" style="text-decoration: none;">
-            <button style="width: 50px; height: 38px; font-size: 20px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">‹</button>
-        </a>
-        <div class="month-nav-label-inline">{month_display}</div>
-        <a href="?action=next" target="_self" style="text-decoration: none;">
-            <button style="width: 50px; height: 38px; font-size: 20px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">›</button>
-        </a>
-    </div>
-""", unsafe_allow_html=True)
+# Native Streamlit Columns forced to 1-line via CSS
+col_prev, col_label, col_next = st.columns([1, 3, 1])
+
+with col_prev:
+    st.button("‹", key="btn_prev_month", on_click=handle_prev, use_container_width=True)
+
+with col_label:
+    st.markdown(f'<div class="month-nav-label-inline">{month_display}</div>', unsafe_allow_html=True)
+
+with col_next:
+    st.button("›", key="btn_next_month", on_click=handle_next, use_container_width=True)
 
 # Render HTML Month Grid Table
 selected_year = st.session_state.cal_year
