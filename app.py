@@ -4,6 +4,8 @@ from collections import defaultdict
 from datetime import datetime, date
 import calendar
 import streamlit as st
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 # Set calendar to start week on Sunday
 calendar.setfirstweekday(calendar.SUNDAY)
@@ -16,7 +18,7 @@ current_month = today.month
 
 # 1. Page Configuration & Favicon Icon
 st.set_page_config(
-    page_title="PEACH TIME TRACKER v.1.1", 
+    page_title="PEACH TIME TRACKER", 
     page_icon="🍑", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -149,7 +151,29 @@ st.markdown("""
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Fetch & Cache Data
+# 2. Google Calendar Writer Helper Function
+def add_peach_event(event_date):
+    if "gcp_service_account" not in st.secrets:
+        raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
+    
+    creds_info = st.secrets["gcp_service_account"]
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_info,
+        scopes=["https://www.googleapis.com/auth/calendar"]
+    )
+    service = build("calendar", "v3", credentials=credentials)
+    
+    calendar_id = "bmadams809@gmail.com"
+    
+    event_body = {
+        'summary': '🍑',
+        'start': {'date': event_date.strftime('%Y-%m-%d')},
+        'end': {'date': event_date.strftime('%Y-%m-%d')},
+    }
+    
+    service.events().insert(calendarId=calendar_id, body=event_body).execute()
+
+# 3. Fetch & Cache Data
 @st.cache_data(ttl=300)
 def fetch_calendar_data():
     req = urllib.request.Request(ICS_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -288,6 +312,21 @@ def handle_next():
 # --- 1. HEADER SECTION ---
 st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
 st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
+
+# Add Peach Form Expander
+with st.expander("➕ Add 🍑 to Calendar"):
+    with st.form("add_peach_form"):
+        selected_date = st.date_input("Select Date", value=datetime.now().date())
+        submit = st.form_submit_button("Add 🍑 Entry", use_container_width=True)
+        
+        if submit:
+            try:
+                add_peach_event(selected_date)
+                st.cache_data.clear()
+                st.success(f"Added 🍑 for {selected_date.strftime('%b %d, %Y')}!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to add entry: {e}")
 
 if st.button("🔄 Force Refresh", use_container_width=True):
     st.cache_data.clear()
