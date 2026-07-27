@@ -349,15 +349,7 @@ with km_col_right:
 
 st.divider()
 
-# --- 4. TARGETS PROGRESS BARS ---
-st.subheader("🎯 2026 Progress")
-st.progress(min(total_2026 / 202, 1.0), text=f"Real Goal: {total_2026} / 202 🍑 ({round((total_2026/202)*100, 1)}%)")
-st.progress(min(total_2026 / 209, 1.0), text=f"4.0/Wk Goal: {total_2026} / 209 🍑 ({round((total_2026/209)*100, 1)}%)")
-st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal: {total_2026} / 223 🍑 ({round((total_2026/223)*100, 1)}%)")
-
-st.divider()
-
-# --- 5. MONTHLY COMPARISON (FORCED 2 COLUMNS ON MOBILE) ---
+# --- 4. MONTHLY COMPARISON (FORCED 2 COLUMNS ON MOBILE) ---
 st.subheader("🗓️ Monthly Comparison")
 
 current_m = datetime.now().month
