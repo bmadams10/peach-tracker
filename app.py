@@ -224,6 +224,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Target Password Inputs to Trigger Numeric Keyboard on Mobile Devices
+st.markdown("""
+    <script>
+    const setNumPad = () => {
+        const passwordInputs = parent.document.querySelectorAll('input[type="password"]');
+        passwordInputs.forEach(input => {
+            input.setAttribute('inputmode', 'numeric');
+            input.setAttribute('pattern', '[0-9]*');
+        });
+    };
+    setInterval(setNumPad, 500);
+    </script>
+""", unsafe_allow_html=True)
+
 # --- PASSWORD LOCK SCREEN DISPLAY ---
 if not st.session_state.authenticated:
     st.markdown('<h1 class="responsive-title">🔒 PeachTime Lock Screen</h1>', unsafe_allow_html=True)
@@ -234,8 +248,8 @@ if not st.session_state.authenticated:
         login_btn = st.form_submit_button("Unlock 🍑", use_container_width=True)
         
         if login_btn:
-            expected_pwd = st.secrets.get("APP_PASSWORD", "peach123")
-            if pwd_input == expected_pwd:
+            expected_pwd = str(st.secrets.get("APP_PASSWORD", "peach123"))
+            if str(pwd_input) == expected_pwd:
                 st.session_state.authenticated = True
                 st.session_state.last_activity = time.time()
                 st.success("Unlocked!")
@@ -402,7 +416,7 @@ if unique_dates:
             elif temp_streak == max_streak and temp_streak > 1:
                 max_streak_dates.append((temp_start, unique_dates[i-1]))
             temp_streak = 1
-            temp_instances = date_counts[unique_dates[i]]
+            temp_instances = date_counts[unique_dates[0]]
             temp_start = unique_dates[i]
             
     if temp_streak > max_streak:
