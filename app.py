@@ -122,40 +122,53 @@ st.markdown("""
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        margin: 8px 0;
     }
     .counter-peach-img {
-        font-size: 40px;
+        font-size: 38px;
         line-height: 1.0;
     }
     .counter-label {
         font-size: 14px;
         color: #a1a1aa;
-        font-weight: 500;
+        font-weight: 600;
         margin-top: 4px;
     }
 
-    /* Round Action Controls (- and +) */
-    div[data-testid="stDialog"] button[key="modal_minus_btn"] {
-        background-color: #2c2c2e !important;
-        color: #ffffff !important;
-        border-radius: 50% !important;
-        width: 52px !important;
-        height: 52px !important;
-        font-size: 22px !important;
-        border: none !important;
-        margin: 0 auto !important;
-    }
-
+    /* Round Action Controls (+ and -) Stacked */
     div[data-testid="stDialog"] button[key="modal_plus_btn"] {
         background-color: #f59e0b !important;
         color: #000000 !important;
         border-radius: 50% !important;
-        width: 52px !important;
-        height: 52px !important;
+        width: 48px !important;
+        height: 48px !important;
         font-size: 22px !important;
         border: none !important;
         font-weight: bold !important;
         margin: 0 auto !important;
+    }
+
+    div[data-testid="stDialog"] button[key="modal_minus_btn"] {
+        background-color: #2c2c2e !important;
+        color: #ffffff !important;
+        border-radius: 50% !important;
+        width: 48px !important;
+        height: 48px !important;
+        font-size: 22px !important;
+        border: none !important;
+        margin: 0 auto !important;
+    }
+
+    /* FORCE CANCEL & COMMIT BUTTONS TO REMAIN 1-ROW SIDE-BY-SIDE */
+    div[data-testid="stDialog"] div[data-testid="stHorizontalBlock"]:has(button[key="btn_cancel_peach"]) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 10px !important;
+    }
+    div[data-testid="stDialog"] div[data-testid="stHorizontalBlock"]:has(button[key="btn_cancel_peach"]) > div {
+        width: 50% !important;
+        min-width: 0 !important;
     }
 
     /* Compact Month Header Styling */
@@ -350,6 +363,10 @@ if "cal_year" not in st.session_state:
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = current_month
 
+# Manage Dialog Open State
+if "show_add_modal" not in st.session_state:
+    st.session_state.show_add_modal = False
+
 # Direct State Mutation Functions
 def handle_prev():
     if st.session_state.cal_month == 1:
@@ -366,44 +383,41 @@ def handle_next():
         st.session_state.cal_month += 1
 
 # Dialog Function for Adding / Updating Peaches
-@st.dialog("Add a Peach 🍑")
+@st.dialog("Add a 🍑")
 def add_peach_modal():
     selected_dt = st.date_input("Select Date", value=today)
     
-    # Get current counts for selected date
+    # Check if target date changed
     curr_count = date_counts.get(selected_dt, 0)
-    
     if "modal_target_count" not in st.session_state or st.session_state.get("modal_date_tracker") != selected_dt:
         st.session_state.modal_target_count = curr_count
         st.session_state.modal_date_tracker = selected_dt
         
-    c_minus, c_display, c_plus = st.columns([1, 1.5, 1], vertical_alignment="center")
-    
-    with c_minus:
-        if st.button("—", key="modal_minus_btn", use_container_width=True):
-            if st.session_state.modal_target_count > 0:
-                st.session_state.modal_target_count -= 1
-                st.rerun()
-                
-    with c_display:
-        st.markdown(f"""
-            <div class="counter-peach-container">
-                <div class="counter-peach-img">🍑</div>
-                <div class="counter-label">Count: {st.session_state.modal_target_count}</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-    with c_plus:
-        if st.button("+", key="modal_plus_btn", use_container_width=True):
-            st.session_state.modal_target_count += 1
+    # Stacked Controls: + Button top, Peach & Count middle, - Button bottom
+    if st.button("+", key="modal_plus_btn", use_container_width=True):
+        st.session_state.modal_target_count += 1
+        st.rerun()
+
+    st.markdown(f"""
+        <div class="counter-peach-container">
+            <div class="counter-peach-img">🍑</div>
+            <div class="counter-label">Count: {st.session_state.modal_target_count}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("—", key="modal_minus_btn", use_container_width=True):
+        if st.session_state.modal_target_count > 0:
+            st.session_state.modal_target_count -= 1
             st.rerun()
-            
+
     st.divider()
     
+    # 1-Row Action Buttons: ✕ (Cancel) and ✓ (Commit)
     col_cancel, col_save = st.columns(2)
     
     with col_cancel:
-        if st.button("✕ Cancel", key="btn_cancel_peach", use_container_width=True):
+        if st.button("✕", key="btn_cancel_peach", use_container_width=True):
+            st.session_state.show_add_modal = False
             if "modal_target_count" in st.session_state:
                 del st.session_state.modal_target_count
             if "modal_date_tracker" in st.session_state:
@@ -411,15 +425,15 @@ def add_peach_modal():
             st.rerun()
             
     with col_save:
-        if st.button("✓ Commit", key="btn_commit_peach", use_container_width=True):
+        if st.button("✓", key="btn_commit_peach", use_container_width=True):
             try:
                 update_peach_events(selected_dt, st.session_state.modal_target_count, raw_events)
                 st.cache_data.clear()
+                st.session_state.show_add_modal = False
                 if "modal_target_count" in st.session_state:
                     del st.session_state.modal_target_count
                 if "modal_date_tracker" in st.session_state:
                     del st.session_state.modal_date_tracker
-                st.success("Updated!")
                 st.rerun()
             except Exception as err:
                 st.error(f"Error: {err}")
@@ -482,8 +496,11 @@ table_html += '</tbody></table>'
 
 st.markdown(table_html, unsafe_allow_html=True)
 
-# "Add a Peach" Button Below Calendar
-if st.button("➕ Add a Peach", key="btn_open_add_modal", use_container_width=True):
+# "+ Add a 🍑" Trigger Button Below Calendar
+if st.button("+ Add a 🍑", key="btn_open_add_modal", use_container_width=True):
+    st.session_state.show_add_modal = True
+
+if st.session_state.show_add_modal:
     add_peach_modal()
 
 st.divider()
