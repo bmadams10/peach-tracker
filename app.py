@@ -233,7 +233,6 @@ if not st.session_state.authenticated:
     with st.form("login_form"):
         pwd_input = st.text_input("Passcode", type="password", key="lock_passcode_field")
         
-        # Inject JavaScript into Parent DOM to force number pad on mobile
         components.html("""
             <script>
             const forceNumPad = () => {
@@ -608,7 +607,7 @@ with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
     st.metric("Top Day of Week", f"{top_day_str}", delta=f"{top_day_val} total ({top_day_pct}%)")
-    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="All-time overall")
+    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="Since 2025")
     st.metric("Longest Streak", f"{max_streak} Days ({streak_instances} 🍑)", delta=f"{streak_period_str}")
 
 st.divider()
