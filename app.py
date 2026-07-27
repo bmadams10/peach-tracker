@@ -16,41 +16,50 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom Mobile-First CSS & Touch Swipe JavaScript
+# Custom Mobile-First Ultra-Compact CSS
 st.markdown("""
     <style>
-    /* Adjust top padding so title isn't clipped by Streamlit header */
+    /* Global Container Padding Optimization */
     .block-container {
-        padding-top: 3.5rem !important;
-        padding-bottom: 2rem !important;
-        padding-left: 0.8rem !important;
-        padding-right: 0.8rem !important;
+        padding-top: 3.2rem !important;
+        padding-bottom: 1.5rem !important;
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
     }
     
-    /* Responsive title fitting mobile screen width cleanly */
+    /* Header Title Fitting Mobile Screen Cleanly */
     .responsive-title {
-        font-size: clamp(20px, 6vw, 36px) !important;
+        font-size: clamp(20px, 6vw, 34px) !important;
         font-weight: 800 !important;
         white-space: nowrap !important;
         margin: 0 !important;
         padding: 0 !important;
-        line-height: 1.3 !important;
+        line-height: 1.2 !important;
     }
 
-    /* FORCED SINGLE ROW TOOLBAR FOR MOBILE */
+    /* Dense Dividers & Subheadings */
+    hr {
+        margin: 0.8rem 0 !important;
+    }
+    h3 {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.4rem !important;
+        margin-top: 0.2rem !important;
+    }
+
+    /* Single-Row Mobile Calendar Toolbar */
     .nav-toolbar-container {
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
         justify-content: space-between !important;
         width: 100% !important;
-        margin-top: 10px !important;
-        margin-bottom: 15px !important;
+        margin-top: 4px !important;
+        margin-bottom: 8px !important;
     }
 
-    /* Month label styling */
     .month-nav-label-inline {
-        font-size: 22px !important;
+        font-size: 20px !important;
         font-weight: 700 !important;
         text-align: center !important;
         flex-grow: 1 !important;
@@ -58,28 +67,66 @@ st.markdown("""
 
     /* Compact Mobile Calendar Table */
     div[data-testid="stTable"] table {
-        font-size: 13px !important;
+        font-size: 12px !important;
         width: 100% !important;
         touch-action: pan-y;
     }
     div[data-testid="stTable"] th, div[data-testid="stTable"] td {
-        padding: 6px 2px !important;
+        padding: 4px 1px !important;
         text-align: center !important;
     }
 
-    /* Compact Month Cards Styling */
-    .month-card {
-        background-color: #1e1f26;
-        border-radius: 8px;
-        padding: 10px 12px;
-        margin-bottom: 8px;
-        border: 1px solid #31333f;
+    /* Dense Monthly Comparison Grid */
+    .month-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 4px;
     }
-    .month-card-title {
-        font-size: 15px;
+    .month-pill {
+        background-color: #1e1f26;
+        border: 1px solid #31333f;
+        border-radius: 6px;
+        padding: 6px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+    }
+    .month-pill-name {
         font-weight: 700;
         color: #ffffff;
-        margin-bottom: 4px;
+    }
+    .month-pill-val {
+        font-weight: 600;
+        color: #d1d5db;
+    }
+    .badge-pos {
+        background: #0e3a2f;
+        color: #34d399;
+        font-weight: 700;
+        font-size: 10px;
+        padding: 1px 4px;
+        border-radius: 4px;
+        margin-left: 3px;
+    }
+    .badge-neg {
+        background: #3b181e;
+        color: #f87171;
+        font-weight: 700;
+        font-size: 10px;
+        padding: 1px 4px;
+        border-radius: 4px;
+        margin-left: 3px;
+    }
+    .badge-neutral {
+        background: #2a2d3d;
+        color: #9ca3af;
+        font-weight: 700;
+        font-size: 10px;
+        padding: 1px 4px;
+        border-radius: 4px;
+        margin-left: 3px;
     }
     </style>
 
@@ -88,7 +135,6 @@ st.markdown("""
     document.addEventListener('DOMContentLoaded', () => {
         let touchstartX = 0;
         let touchendX = 0;
-        
         const minSwipeDistance = 50;
 
         function handleGesture() {
@@ -201,15 +247,14 @@ st.subheader("📅 Calendar View")
 
 month_display = f"{calendar.month_abbr[st.session_state.cal_month]} {st.session_state.cal_year}"
 
-# Custom HTML Container forcing 1 horizontal row on mobile
 st.markdown(f"""
     <div class="nav-toolbar-container">
         <a href="?action=prev" target="_self" style="text-decoration: none;">
-            <button style="width: 50px; height: 38px; font-size: 20px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">‹</button>
+            <button style="width: 44px; height: 34px; font-size: 18px; font-weight: bold; border-radius: 6px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">‹</button>
         </a>
         <div class="month-nav-label-inline">{month_display}</div>
         <a href="?action=next" target="_self" style="text-decoration: none;">
-            <button style="width: 50px; height: 38px; font-size: 20px; font-weight: bold; border-radius: 8px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">›</button>
+            <button style="width: 44px; height: 34px; font-size: 18px; font-weight: bold; border-radius: 6px; border: 1px solid #444; background: #262730; color: white; cursor: pointer;">›</button>
         </a>
     </div>
 """, unsafe_allow_html=True)
@@ -263,29 +308,39 @@ st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal: {total_2026} / 223 
 
 st.divider()
 
-# --- 5. REIMAGINED MONTHLY BREAKDOWN (COMPACT CARDS) ---
+# --- 5. CONDENSED MONTHLY COMPARISON GRID ---
 st.subheader("🗓️ Monthly Comparison")
 
 current_m = datetime.now().month
 
+pills_html = '<div class="month-grid">'
 for m in range(1, 13):
-    m_name = calendar.month_name[m]
+    m_abbr = calendar.month_abbr[m]
     c_2025 = counts_2025[m]
     
-    with st.container():
-        if m <= current_m:
-            c_2026 = counts_2026[m]
-            diff = c_2026 - c_2025
-            delta_str = f"+{diff}" if diff > 0 else (str(diff) if diff < 0 else "0")
-            
-            st.markdown(f'<div class="month-card-title">{m_name}</div>', unsafe_allow_html=True)
-            col_a, col_b = st.columns(2)
-            col_a.metric("2026 🍑", f"{c_2026}", delta=f"{delta_str} YoY")
-            col_b.metric("2025 🍑", f"{c_2025}")
+    if m <= current_m:
+        c_2026 = counts_2026[m]
+        diff = c_2026 - c_2025
+        if diff > 0:
+            badge = f'<span class="badge-pos">+{diff}</span>'
+        elif diff < 0:
+            badge = f'<span class="badge-neg">{diff}</span>'
         else:
-            st.markdown(f'<div class="month-card-title">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
-            col_a, col_b = st.columns(2)
-            col_a.metric("2026 🍑", "—")
-            col_b.metric("2025 🍑", f"{c_2025}")
-        
-        st.write("")
+            badge = f'<span class="badge-neutral">0</span>'
+            
+        pills_html += f"""
+            <div class="month-pill">
+                <span class="month-pill-name">{m_abbr}</span>
+                <span class="month-pill-val">'26: <b>{c_2026}</b> | '25: {c_2025}{badge}</span>
+            </div>
+        """
+    else:
+        pills_html += f"""
+            <div class="month-pill" style="opacity: 0.6;">
+                <span class="month-pill-name">{m_abbr}</span>
+                <span class="month-pill-val">'26: — | '25: {c_2025}</span>
+            </div>
+        """
+pills_html += '</div>'
+
+st.markdown(pills_html, unsafe_allow_html=True)
