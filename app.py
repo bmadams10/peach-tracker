@@ -71,15 +71,24 @@ st.markdown("""
         flex-grow: 1 !important;
     }
 
-    /* Compact Mobile Calendar Table */
-    div[data-testid="stTable"] table {
-        font-size: 12px !important;
+    /* Custom Mobile HTML Calendar Table */
+    .custom-cal-table {
         width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 12px !important;
         touch-action: pan-y;
+        margin-bottom: 10px !important;
     }
-    div[data-testid="stTable"] th, div[data-testid="stTable"] td {
-        padding: 4px 1px !important;
+    .custom-cal-table th, .custom-cal-table td {
+        border: 1px solid #31333f !important;
+        padding: 6px 2px !important;
         text-align: center !important;
+        width: 14.28% !important;
+    }
+    .custom-cal-table th {
+        background-color: #1e1f26 !important;
+        color: #f3f4f6 !important;
+        font-weight: 700 !important;
     }
 
     /* Yellow Highlight Badge for x2, x3 Multipliers */
@@ -87,7 +96,7 @@ st.markdown("""
         background-color: #ffd700 !important;
         color: #111111 !important;
         font-weight: 800 !important;
-        padding: 1px 4px !important;
+        padding: 1px 3px !important;
         border-radius: 4px !important;
         font-size: 10px !important;
         margin-left: 2px !important;
@@ -144,7 +153,7 @@ st.markdown("""
             }
         }
 
-        const calTable = document.querySelector('div[data-testid="stTable"]');
+        const calTable = document.querySelector('.custom-cal-table');
         if (calTable) {
             calTable.addEventListener('touchstart', e => {
                 touchstartX = e.changedTouches[0].screenX;
@@ -327,35 +336,36 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Render Month Grid Table (Sunday First & Yellow Multiplier Badges)
+# Render HTML Month Grid Table (Sunday First & Yellow Multiplier Badges)
 selected_year = st.session_state.cal_year
 selected_month = st.session_state.cal_month
 
 month_cal = calendar.monthcalendar(selected_year, selected_month)
 days_header = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-grid_data = []
+table_html = '<table class="custom-cal-table"><thead><tr>'
+for dh in days_header:
+    table_html += f'<th>{dh}</th>'
+table_html += '</tr></thead><tbody>'
+
 for week in month_cal:
-    week_row = {}
-    for i, day in enumerate(week):
-        day_name = days_header[i]
+    table_html += '<tr>'
+    for day in week:
         if day == 0:
-            week_row[day_name] = ""
+            table_html += '<td></td>'
         else:
             curr_date = date(selected_year, selected_month, day)
             count = date_counts.get(curr_date, 0)
             if count == 1:
-                week_row[day_name] = f"{day}🍑"
+                table_html += f'<td>{day}🍑</td>'
             elif count > 1:
-                week_row[day_name] = f'{day}🍑<span class="mult-badge">x{count}</span>'
+                table_html += f'<td>{day}🍑<span class="mult-badge">x{count}</span></td>'
             else:
-                week_row[day_name] = str(day)
-    grid_data.append(week_row)
+                table_html += f'<td>{day}</td>'
+    table_html += '</tr>'
+table_html += '</tbody></table>'
 
-st.write(
-    st.table(grid_data).to_html(), 
-    unsafe_allow_html=True
-)
+st.markdown(table_html, unsafe_allow_html=True)
 
 st.divider()
 
