@@ -84,16 +84,27 @@ st.markdown("""
         margin-bottom: 2px !important;
     }
 
-    /* FORCE 2 COLUMNS ON MOBILE SCREENS */
-    div[data-testid="stHorizontalBlock"]:has(.month-hdr) {
+    /* FORCE 2 COLUMNS ON MOBILE SCREENS FOR TWO-COLUMN SECTIONS */
+    div[data-testid="stHorizontalBlock"]:has(.month-hdr),
+    div[data-testid="stHorizontalBlock"]:has(.metrics-col-hdr) {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         gap: 10px !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(.month-hdr) > div {
+    div[data-testid="stHorizontalBlock"]:has(.month-hdr) > div,
+    div[data-testid="stHorizontalBlock"]:has(.metrics-col-hdr) > div {
         width: 50% !important;
         min-width: 0 !important;
+    }
+
+    .metrics-col-hdr {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: #ffa07a !important;
+        margin-bottom: 6px !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     </style>
 
@@ -157,10 +168,16 @@ def fetch_calendar_data():
 # Load data
 events = fetch_calendar_data()
 
-# Create a map counting 🍑 per date
+# Create maps for analytical calculations
 date_counts = defaultdict(int)
+day_of_week_counts = defaultdict(int)
+month_year_counts = defaultdict(int)
+
 for d in events:
     date_counts[d] += 1
+    day_name = calendar.day_name[d.weekday()]
+    day_of_week_counts[day_name] += 1
+    month_year_counts[f"{calendar.month_abbr[d.month]} {d.year}"] += 1
 
 # Process Annual Counts
 counts_2025 = defaultdict(int)
@@ -174,6 +191,55 @@ for d in events:
 
 total_2025 = sum(counts_2025.values())
 total_2026 = sum(counts_2026.values())
+total_lifetime = len(events)
+
+# Calculate Lifetime Analytics
+top_month_str = max(month_year_counts, key=month_year_counts.get) if month_year_counts else "—"
+top_month_val = month_year_counts[top_month_str] if month_year_counts else 0
+
+top_day_str = max(day_of_week_counts, key=day_of_week_counts.get) if day_of_week_counts else "—"
+top_day_val = day_of_week_counts[top_day_str] if day_of_week_counts else 0
+
+# Calculate Longest Consecutive Streak
+unique_dates = sorted(list(date_counts.keys()))
+max_streak = 0
+current_streak = 0
+streak_instances = 0
+max_streak_dates = []
+
+if unique_dates:
+    temp_streak = 1
+    temp_instances = date_counts[unique_dates[0]]
+    temp_start = unique_dates[0]
+    
+    for i in range(1, len(unique_dates)):
+        if (unique_dates[i] - unique_dates[i-1]).days == 1:
+            temp_streak += 1
+            temp_instances += date_counts[unique_dates[i]]
+        else:
+            if temp_streak > max_streak:
+                max_streak = temp_streak
+                streak_instances = temp_instances
+                max_streak_dates = [(temp_start, unique_dates[i-1])]
+            elif temp_streak == max_streak and temp_streak > 1:
+                max_streak_dates.append((temp_start, unique_dates[i-1]))
+            temp_streak = 1
+            temp_instances = date_counts[unique_dates[i]]
+            temp_start = unique_dates[i]
+            
+    if temp_streak > max_streak:
+        max_streak = temp_streak
+        streak_instances = temp_instances
+        max_streak_dates = [(temp_start, unique_dates[-1])]
+    elif temp_streak == max_streak and temp_streak > 1:
+        max_streak_dates.append((temp_start, unique_dates[-1]))
+
+# Format Streak Dates string
+if max_streak_dates:
+    d_start, d_end = max_streak_dates[-1]
+    streak_period_str = f"{d_start.strftime('%b %d')}–{d_end.strftime('%d, %Y')}"
+else:
+    streak_period_str = "—"
 
 # Initialize Calendar Session State Date
 if "cal_year" not in st.session_state:
@@ -255,15 +321,26 @@ st.table(grid_data)
 
 st.divider()
 
-# --- 3. KEY METRICS ---
+# --- 3. KEY METRICS (DOUBLE COLUMN) ---
 st.subheader("📊 Key Metrics")
-m1, m2 = st.columns(2)
-m1.metric("2026 YTD", f"{total_2026} 🍑", delta=f"+{total_2026 - 75} vs 2025")
-m2.metric("Weekly Pace", f"{round(total_2026 / 30, 2)} / wk")
 
-m3, m4 = st.columns(2)
-m3.metric("4.0/Wk Goal", "209 🍑", delta="4.07/wk needed")
-m4.metric("Stretch Goal", "223 🍑", delta="4.65/wk needed")
+km_col_left, km_col_right = st.columns(2)
+
+# Left Column: Current 2026 Metrics
+with km_col_left:
+    st.markdown('<div class="metrics-col-hdr">2026 Goals & Pace</div>', unsafe_allow_html=True)
+    st.metric("2026 YTD", f"{total_2026} 🍑", delta=f"+{total_2026 - 75} vs 2025")
+    st.metric("Weekly Pace", f"{round(total_2026 / 30, 2)} / wk")
+    st.metric("4.0/Wk Goal", "209 🍑", delta="4.07/wk needed")
+    st.metric("Stretch Goal", "223 🍑", delta="4.65/wk needed")
+
+# Right Column: Lifetime Insights
+with km_col_right:
+    st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
+    st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
+    st.metric("Top Day of Week", f"{top_day_str}", delta=f"{top_day_val} total 🍑")
+    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="All-time overall")
+    st.metric("Longest Streak", f"{max_streak} Days ({streak_instances} 🍑)", delta=f"{streak_period_str}")
 
 st.divider()
 
