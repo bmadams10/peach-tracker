@@ -83,6 +83,18 @@ st.markdown("""
         color: #f3f4f6 !important;
         margin-bottom: 2px !important;
     }
+
+    /* FORCE 2 COLUMNS ON MOBILE SCREENS */
+    div[data-testid="stHorizontalBlock"]:has(.month-hdr) {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 10px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.month-hdr) > div {
+        width: 50% !important;
+        min-width: 0 !important;
+    }
     </style>
 
     <script>
@@ -263,7 +275,7 @@ st.progress(min(total_2026 / 223, 1.0), text=f"Stretch Goal: {total_2026} / 223 
 
 st.divider()
 
-# --- 5. MONTHLY COMPARISON (JAN-JUN ON LEFT, JUL-DEC ON RIGHT) ---
+# --- 5. MONTHLY COMPARISON (FORCED 2 COLUMNS ON MOBILE) ---
 st.subheader("🗓️ Monthly Comparison")
 
 current_m = datetime.now().month
