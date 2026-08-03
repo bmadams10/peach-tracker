@@ -380,11 +380,11 @@ pace_needed_4_0 = round(max(0, goal_4_0 - total_curr) / remaining_weeks, 2)
 
 # Dynamic Over / Under Goal Status Calculation
 if total_curr < goal_4_0:
-    rem_label = "Remaining for 4.0"
+    rem_label = "Remaining for Goal"
     rem_val = f"{goal_4_0 - total_curr} 🍑"
     rem_delta = f"Target: {goal_4_0}"
 elif total_curr == goal_4_0:
-    rem_label = "4.0 Goal Status"
+    rem_label = "Goal Status"
     rem_val = "209 🍑"
     rem_delta = "Goal Reached! 🎉"
 else:
