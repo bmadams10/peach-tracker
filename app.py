@@ -427,13 +427,11 @@ else:
     rem_delta = f"Exceeded Target ({goal_4_0}) 🎉"
 
 # --- MILESTONE CELEBRATIONS ---
-# 1. 4.0 Goal Milestone Reached
 if total_curr >= goal_4_0 and "celebrated_goal" not in st.session_state:
     st.balloons()
     st.toast("🎉 AMAZING! You hit your 4.0/wk annual goal of 209 🍑!", icon="🍑")
     st.session_state.celebrated_goal = True
 
-# 2. Beat Previous Year Total Milestone
 if total_prev > 0 and total_curr > total_prev and "celebrated_prev_year" not in st.session_state:
     st.balloons()
     st.toast(f"🚀 MILESTONE! You officially passed {prev_year}'s total of {total_prev} 🍑!", icon="🔥")
@@ -794,6 +792,7 @@ st.caption("U.S. married couple data sourced from General Social Survey & Kinsey
 national_weekly_avg = 0.96
 ratio_vs_national = round(weekly_pace / national_weekly_avg, 1) if weekly_pace > 0 else 0.0
 projected_annual = round(weekly_pace * 52)
+ytd_ratio_vs_prev = round(total_curr / total_prev, 1) if total_prev > 0 else 1.0
 
 st.markdown(f"""
     <div class="bench-grid">
@@ -813,9 +812,9 @@ st.markdown(f"""
             <div class="bench-sub">Among US Married Couples (35–45)</div>
         </div>
         <div class="bench-card">
-            <div class="bench-title">4.0 Target Multiplier</div>
-            <div class="bench-val">4.1x US Benchmark</div>
-            <div class="bench-sub">Goal: 209 per year</div>
+            <div class="bench-title">Current YTD</div>
+            <div class="bench-val">{total_curr} 🍑</div>
+            <div class="bench-sub">{ytd_ratio_vs_prev}x vs {prev_year} Total ({total_prev})</div>
         </div>
     </div>
 """, unsafe_allow_html=True)
