@@ -378,8 +378,20 @@ remaining_weeks = max(1, 52 - current_week_num)
 goal_4_0 = 209
 pace_needed_4_0 = round(max(0, goal_4_0 - total_curr) / remaining_weeks, 2)
 
-stretch_goal = 223
-pace_needed_stretch = round(max(0, stretch_goal - total_curr) / remaining_weeks, 2)
+# Dynamic Over / Under Goal Status Calculation
+if total_curr < goal_4_0:
+    rem_label = "Remaining for 4.0"
+    rem_val = f"{goal_4_0 - total_curr} 🍑"
+    rem_delta = f"Target: {goal_4_0}"
+elif total_curr == goal_4_0:
+    rem_label = "4.0 Goal Status"
+    rem_val = "209 🍑"
+    rem_delta = "Goal Reached! 🎉"
+else:
+    over_by = total_curr - goal_4_0
+    rem_label = "Over Goal by"
+    rem_val = f"+{over_by} 🍑"
+    rem_delta = f"Exceeded Target ({goal_4_0}) 🎉"
 
 # Calculate Lifetime Analytics
 if month_year_counts:
@@ -600,7 +612,7 @@ with km_col_left:
     st.metric(f"{current_year} YTD", f"{total_curr} 🍑", delta=f"{'+' if ytd_diff > 0 else ''}{ytd_diff} vs {prev_year} YTD")
     st.metric("Weekly Pace", f"{weekly_pace} / wk")
     st.metric("4.0/Wk Goal", f"{goal_4_0} 🍑", delta=f"{pace_needed_4_0}/wk needed")
-    st.metric("Stretch Goal", f"{stretch_goal} 🍑", delta=f"{pace_needed_stretch}/wk needed")
+    st.metric(rem_label, rem_val, delta=rem_delta)
 
 # Right Column: Lifetime Insights
 with km_col_right:
