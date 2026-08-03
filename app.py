@@ -48,7 +48,6 @@ st.session_state.last_activity = time.time()
 # Custom Mobile-First CSS
 st.markdown("""
     <style>
-    /* Adjust top padding so title isn't clipped by Streamlit header */
     .block-container {
         padding-top: 3.5rem !important;
         padding-bottom: 2rem !important;
@@ -56,7 +55,6 @@ st.markdown("""
         padding-right: 0.8rem !important;
     }
     
-    /* Responsive title fitting mobile screen width cleanly */
     .responsive-title {
         font-size: clamp(20px, 6vw, 36px) !important;
         font-weight: 800 !important;
@@ -66,7 +64,6 @@ st.markdown("""
         line-height: 1.3 !important;
     }
 
-    /* Dense Dividers & Subheadings */
     hr {
         margin: 0.8rem 0 !important;
     }
@@ -76,7 +73,6 @@ st.markdown("""
         margin-top: 0.2rem !important;
     }
 
-    /* GUARANTEED SINGLE-ROW TOOLBAR FOR MOBILE */
     div[data-testid="stHorizontalBlock"]:has(.month-nav-label-inline) {
         display: flex !important;
         flex-direction: row !important;
@@ -106,7 +102,6 @@ st.markdown("""
         white-space: nowrap !important;
     }
 
-    /* Custom Mobile HTML Calendar Table */
     .custom-cal-table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -125,7 +120,6 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* Yellow Highlight Badge for x2, x3 Multipliers */
     .mult-badge {
         background-color: #ffd700 !important;
         color: #111111 !important;
@@ -137,7 +131,6 @@ st.markdown("""
         display: inline-block !important;
     }
 
-    /* Counter Control Display Styling */
     .counter-peach-container {
         display: flex;
         flex-direction: column;
@@ -156,7 +149,6 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    /* Round Action Controls (+ and -) Stacked */
     div[data-testid="stDialog"] button[key="modal_plus_btn"] {
         background-color: #f59e0b !important;
         color: #000000 !important;
@@ -180,7 +172,6 @@ st.markdown("""
         margin: 0 auto !important;
     }
 
-    /* FORCE CANCEL & COMMIT BUTTONS TO REMAIN 1-ROW SIDE-BY-SIDE */
     div[data-testid="stDialog"] div[data-testid="stHorizontalBlock"]:has(button[key="btn_cancel_peach"]) {
         display: flex !important;
         flex-direction: row !important;
@@ -192,7 +183,6 @@ st.markdown("""
         min-width: 0 !important;
     }
 
-    /* Compact Month Header Styling */
     .month-hdr {
         font-size: 13px !important;
         font-weight: 700 !important;
@@ -200,7 +190,6 @@ st.markdown("""
         margin-bottom: 2px !important;
     }
 
-    /* FORCE 2 COLUMNS ON MOBILE SCREENS FOR TWO-COLUMN SECTIONS */
     div[data-testid="stHorizontalBlock"]:has(.month-hdr),
     div[data-testid="stHorizontalBlock"]:has(.metrics-col-hdr) {
         display: flex !important;
@@ -221,6 +210,42 @@ st.markdown("""
         margin-bottom: 6px !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+    }
+
+    .dow-bar-container {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+    }
+    .dow-row {
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+    }
+    .dow-label {
+        width: 35px;
+        font-weight: 600;
+        color: #a1a1aa;
+    }
+    .dow-bar-bg {
+        flex-grow: 1;
+        background-color: #2c2c2e;
+        border-radius: 4px;
+        height: 14px;
+        overflow: hidden;
+        margin: 0 8px;
+    }
+    .dow-bar-fill {
+        background-color: #f59e0b;
+        height: 100%;
+        border-radius: 4px;
+    }
+    .dow-count {
+        width: 30px;
+        text-align: right;
+        font-weight: 700;
+        color: #f3f4f6;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -258,7 +283,7 @@ if not st.session_state.authenticated:
                 st.rerun()
             else:
                 st.error("Incorrect passcode. Please try again.")
-    st.stop() # Stop execution here so the rest of the app stays completely hidden
+    st.stop()
 
 # ==============================================================================
 # MAIN APP CODE (Only runs when authenticated)
@@ -266,7 +291,6 @@ if not st.session_state.authenticated:
 
 ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
 
-# 2. Google Calendar API Helper Functions (With Advanced Key Cleaning)
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
@@ -316,7 +340,6 @@ def update_peach_events(event_date, target_count, current_events):
             clean_id = ev_id.split('@')[0]
             service.events().delete(calendarId=calendar_id, eventId=clean_id).execute()
 
-# 3. Fetch & Cache Data
 @st.cache_data(ttl=300)
 def fetch_calendar_data():
     req = urllib.request.Request(ICS_URL, headers={'User-Agent': 'Mozilla/5.0'})
@@ -393,21 +416,20 @@ else:
     rem_val = f"+{over_by} 🍑"
     rem_delta = f"Exceeded Target ({goal_4_0}) 🎉"
 
-# Calculate Lifetime Analytics
-if month_year_counts:
-    top_month_str = max(month_year_counts, key=month_year_counts.get)
-    top_month_val = month_year_counts[top_month_str]
+# Calculate Days Since Last Entry
+if events:
+    last_event_date = max(events)
+    days_since_last = (today - last_event_date).days
+    if days_since_last == 0:
+        recency_str = "Today 🍑"
+    elif days_since_last == 1:
+        recency_str = "Yesterday"
+    else:
+        recency_str = f"{days_since_last} days ago"
 else:
-    top_month_str, top_month_val = "—", 0
+    recency_str = "No events"
 
-if day_of_week_counts:
-    top_day_str = max(day_of_week_counts, key=day_of_week_counts.get)
-    top_day_val = day_of_week_counts[top_day_str]
-    top_day_pct = round((top_day_val / total_lifetime) * 100, 1) if total_lifetime > 0 else 0.0
-else:
-    top_day_str, top_day_val, top_day_pct = "—", 0, 0.0
-
-# Calculate Longest Consecutive Streak
+# Calculate Streaks (Longest & Current Active)
 unique_dates = sorted(list(date_counts.keys()))
 max_streak = 0
 streak_instances = 0
@@ -430,7 +452,7 @@ if unique_dates:
             elif temp_streak == max_streak and temp_streak > 1:
                 max_streak_dates.append((temp_start, unique_dates[i-1]))
             temp_streak = 1
-            temp_instances = date_counts[unique_dates[0]]
+            temp_instances = date_counts[unique_dates[i]]
             temp_start = unique_dates[i]
             
     if temp_streak > max_streak:
@@ -440,23 +462,45 @@ if unique_dates:
     elif temp_streak == max_streak and temp_streak > 1:
         max_streak_dates.append((temp_start, unique_dates[-1]))
 
+# Calculate Current Active Streak
+current_streak = 0
+if unique_dates:
+    check_date = today
+    if check_date not in date_counts and (today - date(1, 1, 1)).days - (max(unique_dates) - date(1, 1, 1)).days <= 1:
+        check_date = max(unique_dates)
+    
+    while check_date in date_counts:
+        current_streak += 1
+        check_date = date.fromordinal(check_date.toordinal() - 1)
+
 if max_streak_dates:
     d_start, d_end = max_streak_dates[-1]
     streak_period_str = f"{d_start.strftime('%b %d')}–{d_end.strftime('%d, %Y')}"
 else:
     streak_period_str = "—"
 
-# Initialize Calendar Session State
+# Calculate Lifetime Analytics
+if month_year_counts:
+    top_month_str = max(month_year_counts, key=month_year_counts.get)
+    top_month_val = month_year_counts[top_month_str]
+else:
+    top_month_str, top_month_val = "—", 0
+
+if day_of_week_counts:
+    top_day_str = max(day_of_week_counts, key=day_of_week_counts.get)
+    top_day_val = day_of_week_counts[top_day_str]
+    top_day_pct = round((top_day_val / total_lifetime) * 100, 1) if total_lifetime > 0 else 0.0
+else:
+    top_day_str, top_day_val, top_day_pct = "—", 0, 0.0
+
+# Initialize Session State
 if "cal_year" not in st.session_state:
     st.session_state.cal_year = current_year
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = current_month
-
-# Manage Dialog Open State
 if "show_add_modal" not in st.session_state:
     st.session_state.show_add_modal = False
 
-# Direct State Mutation Functions
 def handle_prev():
     if st.session_state.cal_month == 1:
         st.session_state.cal_month = 12
@@ -538,9 +582,23 @@ with h_left:
 with h_right:
     st.button("🔒 Lock", on_click=logout, use_container_width=True)
 
-if st.button("🔄 Force Refresh", use_container_width=True):
-    st.cache_data.clear()
-    st.rerun()
+# Quick Action Buttons (Quick +1 Today & Force Refresh)
+q_col1, q_col2 = st.columns(2)
+with q_col1:
+    if st.button("⚡ +1 Today", use_container_width=True):
+        try:
+            today_count = date_counts.get(today, 0)
+            update_peach_events(today, today_count + 1, raw_events)
+            st.cache_data.clear()
+            st.toast("Added 🍑 for today!", icon="🍑")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+with q_col2:
+    if st.button("🔄 Force Refresh", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
 
 st.divider()
 
@@ -592,7 +650,7 @@ table_html += '</tbody></table>'
 st.markdown(table_html, unsafe_allow_html=True)
 
 # "+ Add a 🍑" Trigger Button Below Calendar
-if st.button("+ Add a 🍑", key="btn_open_add_modal", use_container_width=True):
+if st.button("+ Custom Date Add 🍑", key="btn_open_add_modal", use_container_width=True):
     st.session_state.show_add_modal = True
 
 if st.session_state.show_add_modal:
@@ -608,19 +666,47 @@ km_col_left, km_col_right = st.columns(2)
 # Left Column: Dynamic Current Year Goals & Pace
 with km_col_left:
     st.markdown(f'<div class="metrics-col-hdr">{current_year} Goals & Pace</div>', unsafe_allow_html=True)
+    
+    # Pacing Color Badges
+    if weekly_pace >= 4.0:
+        pace_status = "🟢 On Track"
+    elif weekly_pace >= 3.0:
+        pace_status = "🟡 Moderate Pace"
+    else:
+        pace_status = "🔴 Below Target"
+        
     ytd_diff = total_curr - prev_ytd_count
     st.metric(f"{current_year} YTD", f"{total_curr} 🍑", delta=f"{'+' if ytd_diff > 0 else ''}{ytd_diff} vs {prev_year} YTD")
-    st.metric("Weekly Pace", f"{weekly_pace} / wk")
+    st.metric("Weekly Pace", f"{weekly_pace} / wk", delta=pace_status)
     st.metric("4.0/Wk Goal", f"{goal_4_0} 🍑", delta=f"{pace_needed_4_0}/wk needed")
     st.metric(rem_label, rem_val, delta=rem_delta)
 
-# Right Column: Lifetime Insights
+# Right Column: Lifetime Insights & Recency
 with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
+    st.metric("Last Activity", recency_str, delta=f"Current Streak: {current_streak} days" if current_streak > 0 else "No active streak")
     st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
-    st.metric("Top Day of Week", f"{top_day_str}", delta=f"{top_day_val} total ({top_day_pct}%)")
     st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="Since 2025")
     st.metric("Longest Streak", f"{max_streak} Days ({streak_instances} 🍑)", delta=f"{streak_period_str}")
+
+# Day of the Week Distribution Breakdown
+st.markdown("#### 📆 Day of the Week Breakdown")
+max_dow_val = max(day_of_week_counts.values()) if day_of_week_counts else 1
+dow_order = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+dow_html = '<div class="dow-bar-container">'
+for day_n in dow_order:
+    cnt = day_of_week_counts[day_n]
+    pct = int((cnt / max_dow_val) * 100) if max_dow_val > 0 else 0
+    dow_html += f'''
+    <div class="dow-row">
+        <div class="dow-label">{day_n[:3]}</div>
+        <div class="dow-bar-bg"><div class="dow-bar-fill" style="width: {pct}%;"></div></div>
+        <div class="dow-count">{cnt}</div>
+    </div>
+    '''
+dow_html += '</div>'
+st.markdown(dow_html, unsafe_allow_html=True)
 
 st.divider()
 
