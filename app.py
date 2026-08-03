@@ -641,7 +641,12 @@ with km_col_left:
         pace_status = "🔴 Below Target"
         
     ytd_diff = total_curr - prev_ytd_count
-    st.metric(f"{current_year} YTD", f"{total_curr} 🍑", delta=f"{'+' if ytd_diff > 0 else ''}{ytd_diff} vs {prev_year} YTD")
+    st.metric(
+        label=f"{current_year} YTD", 
+        value=f"{total_curr} 🍑", 
+        delta=f"{prev_year} YTD: {prev_ytd_count} 🍑",
+        delta_color="normal" if ytd_diff >= 0 else "inverse"
+    )
     st.metric("Weekly Pace", f"{weekly_pace} / wk", delta=pace_status)
     st.metric("4.0/Wk Goal", f"{goal_4_0} 🍑", delta=f"{pace_needed_4_0}/wk needed")
     st.metric(rem_label, rem_val, delta=rem_delta)
