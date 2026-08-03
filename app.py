@@ -211,42 +211,6 @@ st.markdown("""
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-
-    .dow-bar-container {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-top: 6px;
-    }
-    .dow-row {
-        display: flex;
-        align-items: center;
-        font-size: 12px;
-    }
-    .dow-label {
-        width: 35px;
-        font-weight: 600;
-        color: #a1a1aa;
-    }
-    .dow-bar-bg {
-        flex-grow: 1;
-        background-color: #2c2c2e;
-        border-radius: 4px;
-        height: 14px;
-        overflow: hidden;
-        margin: 0 8px;
-    }
-    .dow-bar-fill {
-        background-color: #f59e0b;
-        height: 100%;
-        border-radius: 4px;
-    }
-    .dow-count {
-        width: 30px;
-        text-align: right;
-        font-weight: 700;
-        color: #f3f4f6;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -706,7 +670,47 @@ for day_n in dow_order:
     </div>
     '''
 dow_html += '</div>'
-st.markdown(dow_html, unsafe_allow_html=True)
+
+components.html(f"""
+    <style>
+    .dow-bar-container {{
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-family: sans-serif;
+    }}
+    .dow-row {{
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+    }}
+    .dow-label {{
+        width: 35px;
+        font-weight: 600;
+        color: #a1a1aa;
+    }}
+    .dow-bar-bg {{
+        flex-grow: 1;
+        background-color: #2c2c2e;
+        border-radius: 4px;
+        height: 14px;
+        overflow: hidden;
+        margin: 0 8px;
+    }}
+    .dow-bar-fill {{
+        background-color: #f59e0b;
+        height: 100%;
+        border-radius: 4px;
+    }}
+    .dow-count {{
+        width: 30px;
+        text-align: right;
+        font-weight: 700;
+        color: #f3f4f6;
+    }}
+    </style>
+    {dow_html}
+""", height=220)
 
 st.divider()
 
