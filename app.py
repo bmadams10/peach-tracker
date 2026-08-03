@@ -51,7 +51,7 @@ st.markdown("""
     <style>
     .block-container {
         padding-top: 3.5rem !important;
-        padding-bottom: 2rem !important;
+        padding-bottom: 6rem !important; /* Bottom padding for comfortable mobile scrolling */
         padding-left: 0.8rem !important;
         padding-right: 0.8rem !important;
     }
@@ -211,6 +211,10 @@ st.markdown("""
         margin-bottom: 6px !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+    }
+
+    .national-section-container {
+        margin-bottom: 4rem !important; /* Extra bottom padding for mobile browsers */
     }
     </style>
 """, unsafe_allow_html=True)
@@ -723,3 +727,57 @@ with col_right:
         else:
             st.markdown(f'<div class="month-hdr">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
             st.metric(label=f"{current_year} vs {prev_year}", value="—", delta=f"{prev_year}: {c_prev_val}")
+
+st.divider()
+
+# ==============================================================================
+# 5. NATIONAL STATS COMPARISON (AGES 35-45) WITH MOBILE BOTTOM PADDING
+# ==============================================================================
+st.markdown('<div class="national-section-container">', unsafe_allow_html=True)
+st.subheader("🇺🇸 National Demographic Benchmark (Ages 35–45)")
+st.caption("U.S. married couple statistics sourced from General Social Survey & Kinsey Institute research.")
+
+nat_col1, nat_col2 = st.columns(2)
+
+# Calculate ratio vs average (assume 50/yr avg or ~0.96/wk)
+national_weekly_avg = 0.96
+ratio_vs_national = round(weekly_pace / national_weekly_avg, 1) if weekly_pace > 0 else 0.0
+
+with nat_col1:
+    st.metric(
+        label="Your Weekly Pace vs US Avg", 
+        value=f"{weekly_pace} / wk", 
+        delta=f"{ratio_vs_national}x US Avg (~0.96/wk)"
+    )
+    st.metric(
+        label="Annual Pace vs US Avg", 
+        value=f"{round(weekly_pace * 52)} / year", 
+        delta=f"US Avg: 43–54 / year"
+    )
+
+with nat_col2:
+    st.metric(
+        label="Demographic Tier", 
+        value="Top ~1–2%", 
+        delta="Ages 35–45 Married Couples"
+    )
+    st.metric(
+        label="Target Goal (209/yr)", 
+        value="4.0 / wk", 
+        delta="4.1x US National Benchmark"
+    )
+
+st.markdown("#### 📊 Age 35–45 Frequency Breakdown")
+st.markdown("""
+| Frequency Tier (Ages 35–45) | Annual Rate | Weekly Pace | US Married Percentile |
+| :--- | :--- | :--- | :--- |
+| **Infrequent / Sexless** | < 12 / yr | < 0.2 / wk | **~15% – 20%** of couples |
+| **1 to 3 times / month** | 12 – 36 / yr | 0.2 – 0.7 / wk | **~35% – 40%** of couples |
+| **1 to 2 times / week** *(US Avg)* | 52 – 104 / yr | 1.0 – 2.0 / wk | **~30% – 35%** of couples |
+| **3 times / week** | 150 – 180 / yr | ~3.0 / wk | **~3% – 5%** of couples |
+| **4+ times / week (Your Pace)** | **200+ / yr** | **4.0+ / wk** | **Top ~1% – 2%** of couples |
+""")
+
+st.caption("📌 *Note: In research for ages 35–45, logging multi-session days (x2, x3) occurs in less than 3% of active weeks for average married couples.*")
+
+st.markdown('</div>', unsafe_allow_html=True)
