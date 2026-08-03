@@ -792,7 +792,10 @@ st.caption("U.S. married couple data sourced from General Social Survey & Kinsey
 national_weekly_avg = 0.96
 ratio_vs_national = round(weekly_pace / national_weekly_avg, 1) if weekly_pace > 0 else 0.0
 projected_annual = round(weekly_pace * 52)
-ytd_ratio_vs_prev = round(total_curr / total_prev, 1) if total_prev > 0 else 1.0
+
+# Calculate National YTD Average through current week number
+national_ytd_avg = round(0.96 * current_week_num)
+ytd_ratio_vs_national = round(total_curr / national_ytd_avg, 1) if national_ytd_avg > 0 else 1.0
 
 st.markdown(f"""
     <div class="bench-grid">
@@ -814,7 +817,7 @@ st.markdown(f"""
         <div class="bench-card">
             <div class="bench-title">Current YTD</div>
             <div class="bench-val">{total_curr} 🍑</div>
-            <div class="bench-sub">{ytd_ratio_vs_prev}x vs {prev_year} Total ({total_prev})</div>
+            <div class="bench-sub">{ytd_ratio_vs_national}x US YTD Average ({national_ytd_avg})</div>
         </div>
     </div>
 """, unsafe_allow_html=True)
