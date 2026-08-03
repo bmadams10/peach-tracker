@@ -51,7 +51,7 @@ st.markdown("""
     <style>
     .block-container {
         padding-top: 3.5rem !important;
-        padding-bottom: 6rem !important; /* Bottom padding for comfortable mobile scrolling */
+        padding-bottom: 6rem !important;
         padding-left: 0.8rem !important;
         padding-right: 0.8rem !important;
     }
@@ -213,7 +213,6 @@ st.markdown("""
         letter-spacing: 0.5px;
     }
 
-    /* Mobile-Optimized Aesthetic National Stats Section */
     .bench-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -426,6 +425,19 @@ else:
     rem_label = "Over Goal by"
     rem_val = f"+{over_by} 🍑"
     rem_delta = f"Exceeded Target ({goal_4_0}) 🎉"
+
+# --- MILESTONE CELEBRATIONS ---
+# 1. 4.0 Goal Milestone Reached
+if total_curr >= goal_4_0 and "celebrated_goal" not in st.session_state:
+    st.balloons()
+    st.toast("🎉 AMAZING! You hit your 4.0/wk annual goal of 209 🍑!", icon="🍑")
+    st.session_state.celebrated_goal = True
+
+# 2. Beat Previous Year Total Milestone
+if total_prev > 0 and total_curr > total_prev and "celebrated_prev_year" not in st.session_state:
+    st.balloons()
+    st.toast(f"🚀 MILESTONE! You officially passed {prev_year}'s total of {total_prev} 🍑!", icon="🔥")
+    st.session_state.celebrated_prev_year = True
 
 # Calculate Days Since Last Entry
 if events:
