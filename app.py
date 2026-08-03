@@ -213,8 +213,50 @@ st.markdown("""
         letter-spacing: 0.5px;
     }
 
+    /* Mobile-Optimized Aesthetic National Stats Section */
+    .bench-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+        margin-bottom: 16px;
+    }
+    @media (max-width: 600px) {
+        .bench-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .bench-card {
+        background-color: #1e1f26;
+        border: 1px solid #31333f;
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .bench-title {
+        font-size: 12px;
+        color: #a1a1aa;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .bench-val {
+        font-size: 22px;
+        font-weight: 800;
+        color: #f3f4f6;
+    }
+    .bench-sub {
+        font-size: 12px;
+        color: #ffa07a;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+
     .national-section-container {
-        margin-bottom: 4rem !important; /* Extra bottom padding for mobile browsers */
+        margin-bottom: 4rem !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -731,45 +773,44 @@ with col_right:
 st.divider()
 
 # ==============================================================================
-# 5. NATIONAL STATS COMPARISON (AGES 35-45) WITH MOBILE BOTTOM PADDING
+# 5. NATIONAL STATS COMPARISON (AGES 35-45) WITH CLEAN MOBILE CARDS
 # ==============================================================================
 st.markdown('<div class="national-section-container">', unsafe_allow_html=True)
-st.subheader("🇺🇸 National Demographic Benchmark (Ages 35–45)")
-st.caption("U.S. married couple statistics sourced from General Social Survey & Kinsey Institute research.")
+st.subheader("🇺🇸 National Benchmark (Ages 35–45)")
+st.caption("U.S. married couple data sourced from General Social Survey & Kinsey Institute statistics.")
 
-nat_col1, nat_col2 = st.columns(2)
-
-# Calculate ratio vs average (assume 50/yr avg or ~0.96/wk)
 national_weekly_avg = 0.96
 ratio_vs_national = round(weekly_pace / national_weekly_avg, 1) if weekly_pace > 0 else 0.0
+projected_annual = round(weekly_pace * 52)
 
-with nat_col1:
-    st.metric(
-        label="Your Weekly Pace vs US Avg", 
-        value=f"{weekly_pace} / wk", 
-        delta=f"{ratio_vs_national}x US Avg (~0.96/wk)"
-    )
-    st.metric(
-        label="Annual Pace vs US Avg", 
-        value=f"{round(weekly_pace * 52)} / year", 
-        delta=f"US Avg: 43–54 / year"
-    )
+st.markdown(f"""
+    <div class="bench-grid">
+        <div class="bench-card">
+            <div class="bench-title">Weekly Pace Comparison</div>
+            <div class="bench-val">{weekly_pace} / wk</div>
+            <div class="bench-sub">{ratio_vs_national}x National Average (~0.96/wk)</div>
+        </div>
+        <div class="bench-card">
+            <div class="bench-title">Annual Rate Comparison</div>
+            <div class="bench-val">~{projected_annual} / yr</div>
+            <div class="bench-sub">US National Average: 43–54 / yr</div>
+        </div>
+        <div class="bench-card">
+            <div class="bench-title">National Percentile Tier</div>
+            <div class="bench-val">Top ~1–2%</div>
+            <div class="bench-sub">Among US Married Couples (35–45)</div>
+        </div>
+        <div class="bench-card">
+            <div class="bench-title">4.0 Target Multiplier</div>
+            <div class="bench-val">4.1x US Benchmark</div>
+            <div class="bench-sub">Goal: 209 per year</div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
-with nat_col2:
-    st.metric(
-        label="Demographic Tier", 
-        value="Top ~1–2%", 
-        delta="Ages 35–45 Married Couples"
-    )
-    st.metric(
-        label="Target Goal (209/yr)", 
-        value="4.0 / wk", 
-        delta="4.1x US National Benchmark"
-    )
-
-st.markdown("#### 📊 Age 35–45 Frequency Breakdown")
+st.markdown("#### 📊 Age 35–45 Demographic Breakdown")
 st.markdown("""
-| Frequency Tier (Ages 35–45) | Annual Rate | Weekly Pace | US Married Percentile |
+| Frequency Tier | Annual Rate | Weekly Pace | US Married Percentile |
 | :--- | :--- | :--- | :--- |
 | **Infrequent / Sexless** | < 12 / yr | < 0.2 / wk | **~15% – 20%** of couples |
 | **1 to 3 times / month** | 12 – 36 / yr | 0.2 – 0.7 / wk | **~35% – 40%** of couples |
@@ -778,6 +819,6 @@ st.markdown("""
 | **4+ times / week (Your Pace)** | **200+ / yr** | **4.0+ / wk** | **Top ~1% – 2%** of couples |
 """)
 
-st.caption("📌 *Note: In research for ages 35–45, logging multi-session days (x2, x3) occurs in less than 3% of active weeks for average married couples.*")
+st.caption("📌 *Note: For couples aged 35–45, logging multi-session days (x2, x3) occurs in under 3% of active weeks for average married households.*")
 
 st.markdown('</div>', unsafe_allow_html=True)
