@@ -6,6 +6,7 @@ import calendar
 import time
 import streamlit as st
 import streamlit.components.v1 as components
+import plotly.express as px
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -653,64 +654,35 @@ with km_col_right:
     st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="Since 2025")
     st.metric("Longest Streak", f"{max_streak} Days ({streak_instances} 🍑)", delta=f"{streak_period_str}")
 
-# Day of the Week Distribution Breakdown
+# Day of the Week Distribution Breakdown (Interactive Pie/Donut Chart)
 st.markdown("#### 📆 Day of the Week Breakdown")
-max_dow_val = max(day_of_week_counts.values()) if day_of_week_counts else 1
+
 dow_order = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+dow_data = [{"Day": day_n, "Count": day_of_week_counts[day_n]} for day_n in dow_order]
 
-dow_html = '<div class="dow-bar-container">'
-for day_n in dow_order:
-    cnt = day_of_week_counts[day_n]
-    pct = int((cnt / max_dow_val) * 100) if max_dow_val > 0 else 0
-    dow_html += f'''
-    <div class="dow-row">
-        <div class="dow-label">{day_n[:3]}</div>
-        <div class="dow-bar-bg"><div class="dow-bar-fill" style="width: {pct}%;"></div></div>
-        <div class="dow-count">{cnt}</div>
-    </div>
-    '''
-dow_html += '</div>'
+fig = px.pie(
+    dow_data, 
+    values="Count", 
+    names="Day", 
+    hole=0.4,
+    color_discrete_sequence=px.colors.qualitative.Pastel
+)
 
-components.html(f"""
-    <style>
-    .dow-bar-container {{
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        font-family: sans-serif;
-    }}
-    .dow-row {{
-        display: flex;
-        align-items: center;
-        font-size: 12px;
-    }}
-    .dow-label {{
-        width: 35px;
-        font-weight: 600;
-        color: #a1a1aa;
-    }}
-    .dow-bar-bg {{
-        flex-grow: 1;
-        background-color: #2c2c2e;
-        border-radius: 4px;
-        height: 14px;
-        overflow: hidden;
-        margin: 0 8px;
-    }}
-    .dow-bar-fill {{
-        background-color: #f59e0b;
-        height: 100%;
-        border-radius: 4px;
-    }}
-    .dow-count {{
-        width: 30px;
-        text-align: right;
-        font-weight: 700;
-        color: #f3f4f6;
-    }}
-    </style>
-    {dow_html}
-""", height=220)
+fig.update_traces(
+    textposition="inside", 
+    textinfo="percent+label",
+    hovertemplate="<b>%{label}</b><br>Count: %{value} 🍑<br>Share: %{percent}"
+)
+
+fig.update_layout(
+    margin=dict(t=10, b=10, l=10, r=10),
+    showlegend=False,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    height=280
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
