@@ -420,6 +420,12 @@ total_prev = sum(counts_prev.values())
 total_curr = sum(counts_curr.values())
 total_lifetime = len(events)
 
+# Lifetime 10,000 Milestone Calculations
+lifetime_target = 10000
+next_milestone = ((total_lifetime // 1000) + 1) * 1000
+next_milestone = min(next_milestone, lifetime_target)
+lifetime_pct = min(1.0, total_lifetime / lifetime_target)
+
 # Dynamic Pace & Goal Calculations
 current_week_num = max(1, today.isocalendar()[1])
 weekly_pace = round(total_curr / current_week_num, 2)
@@ -747,7 +753,9 @@ with km_col_left:
 with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     
-    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="Since 2009")
+    st.metric("Lifetime 🍑 Total", f"{total_lifetime:,} 🍑", delta=f"Next Milestone: {next_milestone:,} 🍑")
+    st.progress(lifetime_pct, text=f"Lifetime Progress: {total_lifetime:,} / {lifetime_target:,} 🍑 ({round(lifetime_pct * 100, 1)}%)")
+    
     st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
     st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
     st.metric("Longest Streak", f"{max_streak_peaches} 🍑 ({max_streak_days} Days)", delta=f"{streak_period_str}")
