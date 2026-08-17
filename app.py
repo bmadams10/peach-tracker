@@ -305,7 +305,7 @@ st.markdown("""
     }
 
     .national-section-container {
-        margin-bottom: 4rem !important;
+        margin-bottom: 2rem !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -981,3 +981,171 @@ st.markdown("""
 st.caption("📌 *Note: For couples aged 35–45, logging multi-session days (x2, x3) occurs in under 3% of active weeks for average married households.*")
 
 st.markdown('</div>', unsafe_allow_html=True)
+
+st.divider()
+
+# ==============================================================================
+# 8. DYNAMIC PHYSICS BOX (YEAR-TO-DATE 🍑 VISUALIZER)
+# ==============================================================================
+st.subheader(f"🫨 {current_year} 🍑 Physics Box")
+st.caption(f"Visualizing all {total_curr} 🍑 logged in {current_year}. Click or tap inside the box to disrupt them!")
+
+physics_box_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: sans-serif;
+        }}
+        .physics-container {{
+            width: 100%;
+            height: 380px;
+            background-color: #1e1f26;
+            border: 2px solid #31333f;
+            border-radius: 12px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }}
+        canvas {{
+            display: block;
+            width: 100%;
+            height: 100%;
+        }}
+    </style>
+</head>
+<body>
+    <div class="physics-container">
+        <canvas id="peachCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('peachCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {{
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }}
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const count = {total_curr};
+        const peaches = [];
+        const radius = 14; 
+
+        for (let i = 0; i < count; i++) {{
+            peaches.push({{
+                x: Math.random() * (canvas.width - radius * 4) + radius * 2,
+                y: Math.random() * (canvas.height - radius * 4) + radius * 2,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                radius: radius
+            }});
+        }}
+
+        function updatePhysics() {{
+            const w = canvas.width;
+            const h = canvas.height;
+
+            for (let i = 0; i < peaches.length; i++) {{
+                let p = peaches[i];
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Wall collisions
+                if (p.x - p.radius < 0) {{
+                    p.x = p.radius;
+                    p.vx *= -1;
+                }} else if (p.x + p.radius > w) {{
+                    p.x = w - p.radius;
+                    p.vx *= -1;
+                }}
+
+                if (p.y - p.radius < 0) {{
+                    p.y = p.radius;
+                    p.vy *= -1;
+                }} else if (p.y + p.radius > h) {{
+                    p.y = h - p.radius;
+                    p.vy *= -1;
+                }}
+
+                // Particle collisions
+                for (let j = i + 1; j < peaches.length; j++) {{
+                    let p2 = peaches[j];
+                    let dx = p2.x - p.x;
+                    let dy = p2.y - p.y;
+                    let dist = Math.hypot(dx, dy);
+                    let minDist = p.radius + p2.radius;
+
+                    if (dist < minDist && dist > 0) {{
+                        let nx = dx / dist;
+                        let ny = dy / dist;
+
+                        let overlap = minDist - dist;
+                        p.x -= nx * overlap * 0.5;
+                        p.y -= ny * overlap * 0.5;
+                        p2.x += nx * overlap * 0.5;
+                        p2.y += ny * overlap * 0.5;
+
+                        let kx = p.vx - p2.vx;
+                        let ky = p.vy - p2.vy;
+                        let p_val = 2 * (nx * kx + ny * ky) / 2;
+
+                        p.vx -= p_val * nx;
+                        p.vy -= p_val * ny;
+                        p2.vx += p_val * nx;
+                        p2.vy += p_val * ny;
+                    }}
+                }}
+            }}
+        }}
+
+        function render() {{
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '22px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let p of peaches) {{
+                ctx.fillText('🍑', p.x, p.y);
+            }}
+        }}
+
+        function loop() {{
+            updatePhysics();
+            render();
+            requestAnimationFrame(loop);
+        }}
+        loop();
+
+        // Shockwave interaction on click/tap
+        canvas.addEventListener('pointerdown', (e) => {{
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            for (let p of peaches) {{
+                let dx = p.x - clickX;
+                let dy = p.y - clickY;
+                let dist = Math.hypot(dx, dy);
+                if (dist < 150) {{
+                    let force = (150 - dist) / 10;
+                    let angle = Math.atan2(dy, dx);
+                    p.vx += Math.cos(angle) * force;
+                    p.vy += Math.sin(angle) * force;
+                }}
+            }}
+        }});
+    </script>
+</body>
+</html>
+"""
+
+components.html(physics_box_html, height=400)
