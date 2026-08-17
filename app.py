@@ -215,6 +215,40 @@ st.markdown("""
         letter-spacing: 0.5px;
     }
 
+    /* Custom Lifetime Goal Card Styling */
+    .lifetime-progress-card {
+        background-color: #1e1f26;
+        border: 1px solid #31333f;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-top: 10px;
+        margin-bottom: 12px;
+    }
+    .lifetime-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .lifetime-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #f3f4f6;
+    }
+    .lifetime-sub {
+        font-size: 12px;
+        color: #ffa07a;
+        font-weight: 600;
+    }
+    .milestone-ticks {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #a1a1aa;
+        margin-top: 6px;
+        font-weight: 600;
+    }
+
     .bench-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -420,11 +454,12 @@ total_prev = sum(counts_prev.values())
 total_curr = sum(counts_curr.values())
 total_lifetime = len(events)
 
-# Lifetime 10,000 Milestone Calculations
+# Lifetime Goal Progress Calculations
 lifetime_target = 10000
 next_milestone = ((total_lifetime // 1000) + 1) * 1000
 next_milestone = min(next_milestone, lifetime_target)
 lifetime_pct = min(1.0, total_lifetime / lifetime_target)
+lifetime_pct_str = f"{round(lifetime_pct * 100, 1)}%"
 
 # Dynamic Pace & Goal Calculations
 current_week_num = max(1, today.isocalendar()[1])
@@ -754,13 +789,43 @@ with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     
     st.metric("Lifetime 🍑 Total", f"{total_lifetime:,} 🍑", delta=f"Next Milestone: {next_milestone:,} 🍑")
-    st.progress(lifetime_pct, text=f"Lifetime Progress: {total_lifetime:,} / {lifetime_target:,} 🍑 ({round(lifetime_pct * 100, 1)}%)")
-    
     st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
     st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
     st.metric("Longest Streak", f"{max_streak_peaches} 🍑 ({max_streak_days} Days)", delta=f"{streak_period_str}")
 
-# Day of the Week Distribution Breakdown (Interactive Pie/Donut Chart)
+st.divider()
+
+# --- 4. DEDICATED LIFETIME PROGRESS SECTION ---
+st.markdown(f"""
+    <div class="lifetime-progress-card">
+        <div class="lifetime-card-header">
+            <span class="lifetime-title">🏆 Lifetime Goal Progress</span>
+            <span class="lifetime-sub">{total_lifetime:,} / {lifetime_target:,} 🍑 ({lifetime_pct_str})</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+st.progress(lifetime_pct)
+
+st.markdown("""
+    <div class="milestone-ticks">
+        <span>0</span>
+        <span>1k</span>
+        <span>2k</span>
+        <span>3k</span>
+        <span>4k</span>
+        <span>5k</span>
+        <span>6k</span>
+        <span>7k</span>
+        <span>8k</span>
+        <span>9k</span>
+        <span>10k 🍑</span>
+    </div>
+""", unsafe_allow_html=True)
+
+st.divider()
+
+# --- 5. DAY OF THE WEEK BREAKDOWN ---
 st.markdown(f"#### 📆 Day of the Week Breakdown ({prev_year}–{current_year})")
 
 dow_order = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -792,7 +857,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
-# --- 4. MONTHLY COMPARISON (DYNAMIC DUAL YEAR COLUMNS) ---
+# --- 6. MONTHLY COMPARISON (DYNAMIC DUAL YEAR COLUMNS) ---
 st.subheader("🗓️ Monthly Comparison")
 
 col_left, col_right = st.columns(2)
@@ -828,7 +893,7 @@ with col_right:
 st.divider()
 
 # ==============================================================================
-# 5. NATIONAL STATS COMPARISON (AGES 35-45) WITH CLEAN MOBILE CARDS
+# 7. NATIONAL STATS COMPARISON (AGES 35-45) WITH CLEAN MOBILE CARDS
 # ==============================================================================
 st.markdown('<div class="national-section-container">', unsafe_allow_html=True)
 st.subheader("🇺🇸 National Benchmark (Ages 35–45)")
