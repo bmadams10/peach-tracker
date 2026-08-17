@@ -987,8 +987,8 @@ st.divider()
 # ==============================================================================
 # 8. DYNAMIC PHYSICS BOX (YEAR-TO-DATE 🍑 VISUALIZER)
 # ==============================================================================
-st.subheader(f"🫨 {current_year} 🍑 Physics Box")
-st.caption(f"Visualizing all {total_curr} 🍑 logged in {current_year}. Floating underwater—click or tap inside to stir!")
+st.subheader("🫨 Play with your 🍑s")
+st.caption(f"Play with all {total_curr} 🍑s in {current_year}. —click or tap inside to stir!")
 
 physics_box_html = f"""
 <!DOCTYPE html>
