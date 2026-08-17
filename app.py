@@ -301,8 +301,6 @@ if not st.session_state.authenticated:
 # MAIN APP CODE (Only runs when authenticated)
 # ==============================================================================
 
-ICS_URL = "https://calendar.google.com/calendar/ical/bmadams809%40gmail.com/public/basic.ics"
-
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
@@ -354,25 +352,39 @@ def update_peach_events(event_date, target_count, current_events):
 
 @st.cache_data(ttl=300)
 def fetch_calendar_data():
-    req = urllib.request.Request(ICS_URL, headers={'User-Agent': 'Mozilla/5.0'})
-    ics_text = urllib.request.urlopen(req).read().decode('utf-8')
+    service = get_calendar_service()
+    calendar_id = "bmadams809@gmail.com"
     
     events = []
-    current_event = {}
-    for line in ics_text.splitlines():
-        if line.startswith("BEGIN:VEVENT"):
-            current_event = {}
-        elif line.startswith("UID:"):
-            current_event['id'] = line.split(":", 1)[1].strip()
-        elif line.startswith("DTSTART"):
-            match = re.search(r'(\d{8})', line)
-            if match:
-                current_event['date'] = datetime.strptime(match.group(1), "%Y%m%d").date()
-        elif line.startswith("SUMMARY:"):
-            current_event['summary'] = line.split(":", 1)[1].strip()
-        elif line.startswith("END:VEVENT"):
-            if current_event.get('summary') == "🍑" and 'date' in current_event:
-                events.append(current_event)
+    page_token = None
+    
+    # Query Google Calendar API directly back to 2009-01-01
+    while True:
+        events_result = service.events().list(
+            calendarId=calendar_id,
+            timeMin="2009-01-01T00:00:00Z",
+            q="🍑",
+            singleEvents=True,
+            orderBy="startTime",
+            pageToken=page_token
+        ).execute()
+        
+        items = events_result.get('items', [])
+        for item in items:
+            if item.get('summary') == "🍑":
+                start_date_str = item['start'].get('date') or item['start'].get('dateTime', '')[:10]
+                if start_date_str:
+                    event_dt = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                    events.append({
+                        'id': item['id'],
+                        'date': event_dt,
+                        'summary': item.get('summary')
+                    })
+                    
+        page_token = events_result.get('nextPageToken')
+        if not page_token:
+            break
+            
     return events
 
 # Load data
@@ -732,7 +744,7 @@ with km_col_left:
 with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     
-    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="All Recorded Entries")
+    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="Since 2009")
     st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
     st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
     st.metric("Longest Streak", f"{max_streak_peaches} 🍑 ({max_streak_days} Days)", delta=f"{streak_period_str}")
