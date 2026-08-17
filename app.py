@@ -215,20 +215,20 @@ st.markdown("""
         letter-spacing: 0.5px;
     }
 
-    /* Custom Lifetime Goal Card Styling */
+    /* Custom Lifetime Goal Card & Doubled Progress Bar Styling */
     .lifetime-progress-card {
         background-color: #1e1f26;
         border: 1px solid #31333f;
         border-radius: 10px;
         padding: 14px 16px;
         margin-top: 10px;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
     }
     .lifetime-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
     }
     .lifetime-title {
         font-size: 14px;
@@ -240,12 +240,35 @@ st.markdown("""
         color: #ffa07a;
         font-weight: 600;
     }
+    .lifetime-progress-container {
+        background-color: #2c2c2e;
+        border-radius: 12px;
+        height: 24px;
+        width: 100%;
+        position: relative;
+        overflow: visible;
+    }
+    .lifetime-progress-fill {
+        background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+        height: 100%;
+        border-radius: 12px;
+        position: relative;
+    }
+    .lifetime-progress-peach {
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 18px;
+        line-height: 1;
+        z-index: 2;
+    }
     .milestone-ticks {
         display: flex;
         justify-content: space-between;
         font-size: 10px;
         color: #a1a1aa;
-        margin-top: 6px;
+        margin-top: 8px;
         font-weight: 600;
     }
 
@@ -460,6 +483,7 @@ next_milestone = ((total_lifetime // 1000) + 1) * 1000
 next_milestone = min(next_milestone, lifetime_target)
 lifetime_pct = min(1.0, total_lifetime / lifetime_target)
 lifetime_pct_str = f"{round(lifetime_pct * 100, 1)}%"
+fill_width_css = f"{round(lifetime_pct * 100, 2)}%"
 
 # Dynamic Pace & Goal Calculations
 current_week_num = max(1, today.isocalendar()[1])
@@ -802,24 +826,24 @@ st.markdown(f"""
             <span class="lifetime-title">🏆 Lifetime Goal Progress</span>
             <span class="lifetime-sub">{total_lifetime:,} / {lifetime_target:,} 🍑 ({lifetime_pct_str})</span>
         </div>
-    </div>
-""", unsafe_allow_html=True)
-
-st.progress(lifetime_pct)
-
-st.markdown("""
-    <div class="milestone-ticks">
-        <span>0</span>
-        <span>1k</span>
-        <span>2k</span>
-        <span>3k</span>
-        <span>4k</span>
-        <span>5k</span>
-        <span>6k</span>
-        <span>7k</span>
-        <span>8k</span>
-        <span>9k</span>
-        <span>10k 🍑</span>
+        <div class="lifetime-progress-container">
+            <div class="lifetime-progress-fill" style="width: {fill_width_css};">
+                <span class="lifetime-progress-peach">🍑</span>
+            </div>
+        </div>
+        <div class="milestone-ticks">
+            <span>0</span>
+            <span>1k</span>
+            <span>2k</span>
+            <span>3k</span>
+            <span>4k</span>
+            <span>5k</span>
+            <span>6k</span>
+            <span>7k</span>
+            <span>8k</span>
+            <span>9k</span>
+            <span>10k 🍑</span>
+        </div>
     </div>
 """, unsafe_allow_html=True)
 
