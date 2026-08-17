@@ -732,7 +732,7 @@ with km_col_left:
 with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     
-    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="Since 2025")
+    st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="All Recorded Entries")
     st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
     st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
     st.metric("Longest Streak", f"{max_streak_peaches} 🍑 ({max_streak_days} Days)", delta=f"{streak_period_str}")
