@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, date
 import calendar
 import time
+from zoneinfo import ZoneInfo
 import streamlit as st
 import streamlit.components.v1 as components
 import plotly.express as px
@@ -16,8 +17,9 @@ calendar.setfirstweekday(calendar.SUNDAY)
 # Configuration: Auto-lock timeout duration (in minutes)
 TIMEOUT_MINUTES = 15
 
-# Dynamic Year & Today Definitions
-today = datetime.now().date()
+# Dynamic Year & Today Definitions (Enforced US Central Timezone)
+central_tz = ZoneInfo("America/Chicago")
+today = datetime.now(central_tz).date()
 current_year = today.year
 prev_year = current_year - 1
 current_month = today.month
@@ -409,7 +411,6 @@ weekly_pace = round(total_curr / current_week_num, 2)
 remaining_weeks = max(1, 52 - current_week_num)
 
 goal_4_0 = 209
-pace_needed_4_0 = round(max(0, goal_4_0 - total_curr) / remaining_weeks, 2)
 
 # Dynamic Over / Under Goal Status Calculation
 if total_curr < goal_4_0:
@@ -450,7 +451,7 @@ if events:
 else:
     recency_str = "No events"
 
-# Calculate Streaks (Longest & Current Active based on total 🍑 count)
+# --- 1. CONSECUTIVE DAILY STREAK LOGIC ---
 unique_dates = sorted(list(date_counts.keys()))
 max_streak_peaches = 0
 max_streak_days = 0
@@ -484,7 +485,7 @@ if unique_dates:
     elif temp_peaches == max_streak_peaches and temp_peaches > 0:
         max_streak_dates.append((temp_start, unique_dates[-1]))
 
-# Calculate Current Active Streak (Total 🍑 in consecutive days)
+# Current Active Consecutive Streak
 current_streak_peaches = 0
 current_streak_days = 0
 if unique_dates:
@@ -499,9 +500,25 @@ if unique_dates:
 
 if max_streak_dates:
     d_start, d_end = max_streak_dates[-1]
-    streak_period_str = f"{d_start.strftime('%b %d')}–{d_end.strftime('%d, %Y')}"
+    streak_period_str = f"{d_start.strftime('%b %d')}–{d_end.strftime('%b %d, %Y')}" if d_start != d_end else f"{d_start.strftime('%b %d, %Y')}"
 else:
     streak_period_str = "—"
+
+# --- 2. MOST PEACHES IN A WEEK LOGIC (SUNDAY TO SATURDAY) ---
+weekly_peach_counts = defaultdict(int)
+for event_date, count in date_counts.items():
+    days_since_sunday = (event_date.weekday() + 1) % 7
+    week_start_sunday = date.fromordinal(event_date.toordinal() - days_since_sunday)
+    weekly_peach_counts[week_start_sunday] += count
+
+if weekly_peach_counts:
+    top_week_sunday = max(weekly_peach_counts, key=weekly_peach_counts.get)
+    max_weekly_peaches = weekly_peach_counts[top_week_sunday]
+    top_week_sat = date.fromordinal(top_week_sunday.toordinal() + 6)
+    max_weekly_period_str = f"{top_week_sunday.strftime('%b %d')}–{top_week_sat.strftime('%b %d, %Y')}"
+else:
+    max_weekly_peaches = 0
+    max_weekly_period_str = "—"
 
 # Calculate Lifetime Analytics
 if month_year_counts:
@@ -601,7 +618,7 @@ h_left, h_right = st.columns([0.8, 0.2], vertical_alignment="center")
 
 with h_left:
     st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
-    st.caption(f"Live Calendar | Updated: {datetime.now().strftime('%b %d, %Y - %I:%M %p')}")
+    st.caption(f"Live Calendar | Updated: {datetime.now(central_tz).strftime('%b %d, %Y - %I:%M %p')}")
 
 with h_right:
     st.button("🔒 Lock", on_click=logout, use_container_width=True)
@@ -687,11 +704,10 @@ st.subheader("📊 Key Metrics")
 
 km_col_left, km_col_right = st.columns(2)
 
-# Left Column: Dynamic Current Year Goals & Pace
+# Left Column: Current Year Pace & Goal Progress
 with km_col_left:
     st.markdown(f'<div class="metrics-col-hdr">{current_year} Goals & Pace</div>', unsafe_allow_html=True)
     
-    # Pacing Color Badges
     if weekly_pace >= 4.0:
         pace_status = "🟢 On Track"
     elif weekly_pace >= 3.0:
@@ -707,10 +723,10 @@ with km_col_left:
         delta_color="normal" if ytd_diff >= 0 else "inverse"
     )
     st.metric("Weekly Pace", f"{weekly_pace} / wk", delta=pace_status)
-    st.metric("4.0/Wk Goal", f"{goal_4_0} 🍑", delta=f"{pace_needed_4_0}/wk needed")
+    st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
     st.metric(rem_label, rem_val, delta=rem_delta)
 
-# Right Column: Lifetime Insights & Recency
+# Right Column: Consecutive Streaks & Lifetime Insights
 with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     
