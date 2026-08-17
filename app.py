@@ -507,19 +507,16 @@ else:
     max_weekly_peaches = 0
     max_weekly_period_str = "—"
 
-# Exact 24-Hour Threshold Calculation for Last Activity
+# Days Ago Last Activity Calculation
 if events:
     last_event_date = max(events)
-    last_event_end_dt = datetime.combine(last_event_date, datetime.max.time()).replace(tzinfo=central_tz)
-    now_dt = datetime.now(central_tz)
-    
-    time_diff_seconds = (now_dt - last_event_end_dt).total_seconds()
-    
-    if time_diff_seconds <= 86400:
+    days_since_last = (today - last_event_date).days
+    if days_since_last == 0:
         recency_str = "Today 🍑"
+    elif days_since_last == 1:
+        recency_str = "Yesterday"
     else:
-        full_days_passed = int(time_diff_seconds // 86400)
-        recency_str = "Yesterday" if full_days_passed == 1 else f"{full_days_passed} days ago"
+        recency_str = f"{days_since_last} days ago"
 else:
     recency_str = "No events"
 
