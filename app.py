@@ -402,9 +402,12 @@ prev_ytd_count = 0
 
 for d in events:
     date_counts[d] += 1
-    day_name = calendar.day_name[d.weekday()]
-    day_of_week_counts[day_name] += 1
     month_year_counts[f"{calendar.month_abbr[d.month]} {d.year}"] += 1
+    
+    # Day of the Week filter: Only count entries from current_year and prev_year
+    if d.year in (current_year, prev_year):
+        day_name = calendar.day_name[d.weekday()]
+        day_of_week_counts[day_name] += 1
     
     if d.year == prev_year:
         counts_prev[d.month] += 1
@@ -750,7 +753,7 @@ with km_col_right:
     st.metric("Longest Streak", f"{max_streak_peaches} 🍑 ({max_streak_days} Days)", delta=f"{streak_period_str}")
 
 # Day of the Week Distribution Breakdown (Interactive Pie/Donut Chart)
-st.markdown("#### 📆 Day of the Week Breakdown")
+st.markdown(f"#### 📆 Day of the Week Breakdown ({prev_year}–{current_year})")
 
 dow_order = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 dow_data = [{"Day": day_n, "Count": day_of_week_counts[day_n]} for day_n in dow_order]
