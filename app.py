@@ -868,7 +868,7 @@ fig_dow.update_layout(
     height=280
 )
 
-st.plotly_chart(fig_dow, use_container_width=True)
+st.plotly_chart(fig_dow, use_container_width=True, config={'displayModeBar': False})
 
 st.divider()
 
@@ -887,6 +887,7 @@ fig_monthly = px.bar(
     x="Month",
     y="Count",
     color="Year",
+    text="Count",
     barmode="group",
     color_discrete_map={
         str(prev_year): "#6366f1",
@@ -895,11 +896,16 @@ fig_monthly = px.bar(
 )
 
 fig_monthly.update_traces(
+    textposition="outside",
+    textfont=dict(color="#f3f4f6", size=11),
     hovertemplate="<b>%{x} %{fullData.name}</b><br>Count: %{y} 🍑<extra></extra>"
 )
 
+fig_monthly.update_xaxes(fixedrange=True)
+fig_monthly.update_yaxes(fixedrange=True)
+
 fig_monthly.update_layout(
-    margin=dict(t=10, b=10, l=10, r=10),
+    margin=dict(t=30, b=10, l=10, r=10),
     xaxis_title=None,
     yaxis_title=None,
     legend=dict(
@@ -917,7 +923,7 @@ fig_monthly.update_layout(
     bargroupgap=0.1
 )
 
-st.plotly_chart(fig_monthly, use_container_width=True)
+st.plotly_chart(fig_monthly, use_container_width=True, config={'displayModeBar': False})
 
 st.divider()
 
