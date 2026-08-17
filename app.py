@@ -186,21 +186,12 @@ st.markdown("""
         min-width: 0 !important;
     }
 
-    .month-hdr {
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        color: #f3f4f6 !important;
-        margin-bottom: 2px !important;
-    }
-
-    div[data-testid="stHorizontalBlock"]:has(.month-hdr),
     div[data-testid="stHorizontalBlock"]:has(.metrics-col-hdr) {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         gap: 10px !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(.month-hdr) > div,
     div[data-testid="stHorizontalBlock"]:has(.metrics-col-hdr) > div {
         width: 50% !important;
         min-width: 0 !important;
@@ -855,7 +846,7 @@ st.markdown(f"#### 📆 Day of the Week Breakdown ({prev_year}–{current_year})
 dow_order = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 dow_data = [{"Day": day_n, "Count": day_of_week_counts[day_n]} for day_n in dow_order]
 
-fig = px.pie(
+fig_dow = px.pie(
     dow_data, 
     values="Count", 
     names="Day", 
@@ -863,13 +854,13 @@ fig = px.pie(
     color_discrete_sequence=px.colors.qualitative.Pastel
 )
 
-fig.update_traces(
+fig_dow.update_traces(
     textposition="inside", 
     textinfo="percent+label",
     hovertemplate="<b>%{label}</b><br>Count: %{value} 🍑<br>Share: %{percent}"
 )
 
-fig.update_layout(
+fig_dow.update_layout(
     margin=dict(t=10, b=10, l=10, r=10),
     showlegend=False,
     paper_bgcolor="rgba(0,0,0,0)",
@@ -877,42 +868,56 @@ fig.update_layout(
     height=280
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig_dow, use_container_width=True)
 
 st.divider()
 
-# --- 6. MONTHLY COMPARISON (DYNAMIC DUAL YEAR COLUMNS) ---
-st.subheader("🗓️ Monthly Comparison")
+# --- 6. MONTHLY COMPARISON (GROUPED DOUBLE BAR CHART) ---
+st.subheader(f"🗓️ Monthly Comparison ({prev_year} vs {current_year})")
 
-col_left, col_right = st.columns(2)
+monthly_chart_data = []
+for m in range(1, 13):
+    m_name = calendar.month_abbr[m]
+    monthly_chart_data.append({"Month": m_name, "Year": str(prev_year), "Count": counts_prev[m]})
+    c_val = counts_curr[m] if m <= current_month else 0
+    monthly_chart_data.append({"Month": m_name, "Year": str(current_year), "Count": c_val})
 
-# Left Column: January (1) to June (6)
-with col_left:
-    for m in range(1, 7):
-        m_name = calendar.month_abbr[m]
-        c_prev_val = counts_prev[m]
-        if m <= current_month:
-            c_curr_val = counts_curr[m]
-            diff = c_curr_val - c_prev_val
-            st.markdown(f'<div class="month-hdr">{m_name}</div>', unsafe_allow_html=True)
-            st.metric(label=f"{current_year} vs {prev_year}", value=f"{c_curr_val} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY ({prev_year}: {c_prev_val})")
-        else:
-            st.markdown(f'<div class="month-hdr">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
-            st.metric(label=f"{current_year} vs {prev_year}", value="—", delta=f"{prev_year}: {c_prev_val}")
+fig_monthly = px.bar(
+    monthly_chart_data,
+    x="Month",
+    y="Count",
+    color="Year",
+    barmode="group",
+    color_discrete_map={
+        str(prev_year): "#6366f1",
+        str(current_year): "#f59e0b"
+    }
+)
 
-# Right Column: July (7) to December (12)
-with col_right:
-    for m in range(7, 13):
-        m_name = calendar.month_abbr[m]
-        c_prev_val = counts_prev[m]
-        if m <= current_month:
-            c_curr_val = counts_curr[m]
-            diff = c_curr_val - c_prev_val
-            st.markdown(f'<div class="month-hdr">{m_name}</div>', unsafe_allow_html=True)
-            st.metric(label=f"{current_year} vs {prev_year}", value=f"{c_curr_val} 🍑", delta=f"{'+' if diff > 0 else ''}{diff} YoY ({prev_year}: {c_prev_val})")
-        else:
-            st.markdown(f'<div class="month-hdr">{m_name} *(Upcoming)*</div>', unsafe_allow_html=True)
-            st.metric(label=f"{current_year} vs {prev_year}", value="—", delta=f"{prev_year}: {c_prev_val}")
+fig_monthly.update_traces(
+    hovertemplate="<b>%{x} %{fullData.name}</b><br>Count: %{y} 🍑<extra></extra>"
+)
+
+fig_monthly.update_layout(
+    margin=dict(t=10, b=10, l=10, r=10),
+    xaxis_title=None,
+    yaxis_title=None,
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1,
+        title=None
+    ),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    height=320,
+    bargap=0.2,
+    bargroupgap=0.1
+)
+
+st.plotly_chart(fig_monthly, use_container_width=True)
 
 st.divider()
 
