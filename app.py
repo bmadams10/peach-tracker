@@ -438,19 +438,6 @@ if total_prev > 0 and total_curr > total_prev and "celebrated_prev_year" not in 
     st.toast(f"🚀 MILESTONE! You officially passed {prev_year}'s total of {total_prev} 🍑!", icon="🔥")
     st.session_state.celebrated_prev_year = True
 
-# Calculate Days Since Last Entry
-if events:
-    last_event_date = max(events)
-    days_since_last = (today - last_event_date).days
-    if days_since_last == 0:
-        recency_str = "Today 🍑"
-    elif days_since_last == 1:
-        recency_str = "Yesterday"
-    else:
-        recency_str = f"{days_since_last} days ago"
-else:
-    recency_str = "No events"
-
 # --- 1. CONSECUTIVE DAILY STREAK LOGIC ---
 unique_dates = sorted(list(date_counts.keys()))
 max_streak_peaches = 0
@@ -519,6 +506,22 @@ if weekly_peach_counts:
 else:
     max_weekly_peaches = 0
     max_weekly_period_str = "—"
+
+# Exact 24-Hour Threshold Calculation for Last Activity
+if events:
+    last_event_date = max(events)
+    last_event_end_dt = datetime.combine(last_event_date, datetime.max.time()).replace(tzinfo=central_tz)
+    now_dt = datetime.now(central_tz)
+    
+    time_diff_seconds = (now_dt - last_event_end_dt).total_seconds()
+    
+    if time_diff_seconds <= 86400:
+        recency_str = "Today 🍑"
+    else:
+        full_days_passed = int(time_diff_seconds // 86400)
+        recency_str = "Yesterday" if full_days_passed == 1 else f"{full_days_passed} days ago"
+else:
+    recency_str = "No events"
 
 # Calculate Lifetime Analytics
 if month_year_counts:
@@ -704,7 +707,7 @@ st.subheader("📊 Key Metrics")
 
 km_col_left, km_col_right = st.columns(2)
 
-# Left Column: Current Year Pace & Goal Progress
+# Left Column: Current Year Goals, Pace & Last Activity
 with km_col_left:
     st.markdown(f'<div class="metrics-col-hdr">{current_year} Goals & Pace</div>', unsafe_allow_html=True)
     
@@ -723,17 +726,18 @@ with km_col_left:
         delta_color="normal" if ytd_diff >= 0 else "inverse"
     )
     st.metric("Weekly Pace", f"{weekly_pace} / wk", delta=pace_status)
-    st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
     st.metric(rem_label, rem_val, delta=rem_delta)
-
-# Right Column: Consecutive Streaks & Lifetime Insights
-with km_col_right:
-    st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     
     active_streak_delta = f"Streak: {current_streak_peaches} 🍑 ({current_streak_days}d)" if current_streak_peaches > 0 else "No active streak"
     st.metric("Last Activity", recency_str, delta=active_streak_delta)
-    st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
+
+# Right Column: Lifetime Insights, Peaks & Streaks
+with km_col_right:
+    st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
+    
     st.metric("Lifetime 🍑 Total", f"{total_lifetime} 🍑", delta="Since 2025")
+    st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
+    st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
     st.metric("Longest Streak", f"{max_streak_peaches} 🍑 ({max_streak_days} Days)", delta=f"{streak_period_str}")
 
 # Day of the Week Distribution Breakdown (Interactive Pie/Donut Chart)
