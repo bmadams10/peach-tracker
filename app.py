@@ -988,7 +988,7 @@ st.divider()
 # 8. DYNAMIC PHYSICS BOX (YEAR-TO-DATE 🍑 VISUALIZER)
 # ==============================================================================
 st.subheader(f"🫨 {current_year} 🍑 Physics Box")
-st.caption(f"Visualizing all {total_curr} 🍑 logged in {current_year}. Click or tap inside the box to disrupt them!")
+st.caption(f"Visualizing all {total_curr} 🍑 logged in {current_year}. Floating underwater—click or tap inside to stir!")
 
 physics_box_html = f"""
 <!DOCTYPE html>
@@ -1039,13 +1039,14 @@ physics_box_html = f"""
         const count = {total_curr};
         const peaches = [];
         const radius = 14; 
+        const drag = 0.985; // Viscous drag (slows velocity down like in water)
 
         for (let i = 0; i < count; i++) {{
             peaches.push({{
                 x: Math.random() * (canvas.width - radius * 4) + radius * 2,
                 y: Math.random() * (canvas.height - radius * 4) + radius * 2,
-                vx: (Math.random() - 0.5) * 6,
-                vy: (Math.random() - 0.5) * 6,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: (Math.random() - 0.5) * 1.5,
                 radius: radius
             }});
         }}
@@ -1056,24 +1057,31 @@ physics_box_html = f"""
 
             for (let i = 0; i < peaches.length; i++) {{
                 let p = peaches[i];
+
+                // Apply viscous drag & subtle drift (underwater feel)
+                p.vx *= drag;
+                p.vy *= drag;
+                p.vx += (Math.random() - 0.5) * 0.08;
+                p.vy += (Math.random() - 0.5) * 0.08;
+
                 p.x += p.vx;
                 p.y += p.vy;
 
                 // Wall collisions
                 if (p.x - p.radius < 0) {{
                     p.x = p.radius;
-                    p.vx *= -1;
+                    p.vx *= -0.6;
                 }} else if (p.x + p.radius > w) {{
                     p.x = w - p.radius;
-                    p.vx *= -1;
+                    p.vx *= -0.6;
                 }}
 
                 if (p.y - p.radius < 0) {{
                     p.y = p.radius;
-                    p.vy *= -1;
+                    p.vy *= -0.6;
                 }} else if (p.y + p.radius > h) {{
                     p.y = h - p.radius;
-                    p.vy *= -1;
+                    p.vy *= -0.6;
                 }}
 
                 // Particle collisions
@@ -1096,7 +1104,7 @@ physics_box_html = f"""
 
                         let kx = p.vx - p2.vx;
                         let ky = p.vy - p2.vy;
-                        let p_val = 2 * (nx * kx + ny * ky) / 2;
+                        let p_val = (nx * kx + ny * ky) * 0.8;
 
                         p.vx -= p_val * nx;
                         p.vy -= p_val * ny;
@@ -1125,7 +1133,7 @@ physics_box_html = f"""
         }}
         loop();
 
-        // Shockwave interaction on click/tap
+        // Underwater pulse/shockwave interaction on click or tap
         canvas.addEventListener('pointerdown', (e) => {{
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
@@ -1135,8 +1143,8 @@ physics_box_html = f"""
                 let dx = p.x - clickX;
                 let dy = p.y - clickY;
                 let dist = Math.hypot(dx, dy);
-                if (dist < 150) {{
-                    let force = (150 - dist) / 10;
+                if (dist < 160) {{
+                    let force = (160 - dist) / 25;
                     let angle = Math.atan2(dy, dx);
                     p.vx += Math.cos(angle) * force;
                     p.vy += Math.sin(angle) * force;
