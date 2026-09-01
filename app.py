@@ -11,11 +11,10 @@ import plotly.express as px
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+import auth
+
 # Set calendar to start week on Sunday
 calendar.setfirstweekday(calendar.SUNDAY)
-
-# Configuration: Auto-lock timeout duration (in minutes)
-TIMEOUT_MINUTES = 15
 
 # Dynamic Year & Today Definitions (Enforced US Central Timezone)
 central_tz = ZoneInfo("America/Chicago")
@@ -32,21 +31,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Initialize Authentication State
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-if "last_activity" not in st.session_state:
-    st.session_state.last_activity = time.time()
-
-# Check for Auto-Lock Timeout
-if st.session_state.authenticated:
-    elapsed_minutes = (time.time() - st.session_state.last_activity) / 60
-    if elapsed_minutes > TIMEOUT_MINUTES:
-        st.session_state.authenticated = False
-        st.warning(f"🔒 App locked due to {TIMEOUT_MINUTES} minutes of inactivity.")
-
-# Reset Activity Timer on any action
-st.session_state.last_activity = time.time()
+# Initialize & Enforce Multi-User Authentication
+auth.init_auth_state()
+auth.check_session_timeout()
 
 # Custom Mobile-First CSS
 st.markdown("""
@@ -310,40 +297,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- PASSWORD LOCK SCREEN DISPLAY ---
-if not st.session_state.authenticated:
-    st.markdown('<h1 class="responsive-title">🔒 Tracker Lock Screen</h1>', unsafe_allow_html=True)
-    st.caption("Enter your passcode to unlock.")
-    
-    with st.form("login_form"):
-        pwd_input = st.text_input("Passcode", type="password", key="lock_passcode_field")
-        
-        components.html("""
-            <script>
-            const forceNumPad = () => {
-                const inputs = window.parent.document.querySelectorAll('input[type="password"]');
-                inputs.forEach(input => {
-                    input.setAttribute('inputmode', 'numeric');
-                    input.setAttribute('pattern', '[0-9]*');
-                });
-            };
-            forceNumPad();
-            setTimeout(forceNumPad, 300);
-            setTimeout(forceNumPad, 800);
-            </script>
-        """, height=0, width=0)
-        
-        login_btn = st.form_submit_button("Unlock", use_container_width=True)
-        
-        if login_btn:
-            expected_pwd = str(st.secrets.get("APP_PASSWORD", "peach123"))
-            if str(pwd_input) == expected_pwd:
-                st.session_state.authenticated = True
-                st.session_state.last_activity = time.time()
-                st.rerun()
-            else:
-                st.error("Incorrect passcode. Please try again.")
+# --- LOCK SCREEN ENFORCEMENT ---
+if not st.session_state.authenticated_user:
+    auth.render_login_screen()
     st.stop()
+
+# Refresh Activity Timer on active user interaction
+auth.update_activity_timer()
+current_user = st.session_state.authenticated_user
 
 # ==============================================================================
 # MAIN APP CODE (Only runs when authenticated)
@@ -627,10 +588,6 @@ def handle_next():
     else:
         st.session_state.cal_month += 1
 
-def logout():
-    st.session_state.authenticated = False
-    st.rerun()
-
 # Dialog Function for Adding / Updating Peaches
 @st.dialog("Add a 🍑")
 def add_peach_modal():
@@ -689,10 +646,10 @@ h_left, h_right = st.columns([0.8, 0.2], vertical_alignment="center")
 
 with h_left:
     st.markdown('<h1 class="responsive-title">🍑 PEACH TIME TRACKER</h1>', unsafe_allow_html=True)
-    st.caption(f"Live Calendar | Updated: {datetime.now(central_tz).strftime('%b %d, %Y - %I:%M %p')}")
+    st.caption(f"Logged in as **{current_user['name']}** | Updated: {datetime.now(central_tz).strftime('%b %d, %Y - %I:%M %p')}")
 
 with h_right:
-    st.button("🔒 Lock", on_click=logout, use_container_width=True)
+    st.button("🔒 Lock", on_click=auth.logout, use_container_width=True)
 
 # Quick Action Buttons (Quick +1 Today & Force Refresh)
 q_col1, q_col2 = st.columns(2)
