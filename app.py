@@ -311,7 +311,8 @@ current_user = st.session_state.authenticated_user
 
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
-        raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
+        st.error("🚨 Google Service Account configuration missing from Streamlit Secrets.")
+        st.stop()
     
     creds_dict = dict(st.secrets["gcp_service_account"])
     
@@ -320,24 +321,41 @@ def get_calendar_service():
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
-    # --- THE ULTIMATE FORMATTING FIX ---
-    # This automatically cleans up any invisible spaces, indents, or formatting issues 
-    # that Streamlit accidentally introduced in the Secrets text box.
-    if "private_key" in creds_dict:
-        raw_key = creds_dict["private_key"]
-        
-        # 1. Convert any literal "\n" strings into actual structural newlines
-        raw_key = raw_key.replace("\\n", "\n")
-        
-        # 2. Break it apart, strip ALL invisible leading/trailing spaces, and put it back together perfectly.
-        cleaned_lines = [line.strip() for line in raw_key.split('\n') if line.strip()]
-        creds_dict["private_key"] = "\n".join(cleaned_lines)
+    pk = str(creds_dict.get("private_key", ""))
+    
+    # --- AGGRESSIVE RECONSTRUCTOR ---
+    if pk:
+        if "-----BEGIN PRIVATE KEY-----" in pk and "-----END PRIVATE KEY-----" in pk:
+            try:
+                import textwrap
+                # Extract just the base64 blob safely
+                core_key = pk.split("-----BEGIN PRIVATE KEY-----")[1].split("-----END PRIVATE KEY-----")[0]
+                # Strip absolutely ALL whitespace, newlines, and literal characters
+                core_key = core_key.replace("\\n", "").replace("\n", "").replace(" ", "").replace("\r", "").replace('"', '').replace("'", "").strip()
+                # Re-wrap exactly to 64 chars
+                wrapped = "\n".join(textwrap.wrap(core_key, 64))
+                creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped}\n-----END PRIVATE KEY-----\n"
+            except Exception:
+                pass # If parsing fails, fall back to the default string to trigger the diagnostic display
+        else:
+            creds_dict["private_key"] = pk.replace("\\n", "\n")
 
-    credentials = service_account.Credentials.from_service_account_info(
-        creds_dict,
-        scopes=["https://www.googleapis.com/auth/calendar"]
-    )
-    return build("calendar", "v3", credentials=credentials)
+    try:
+        credentials = service_account.Credentials.from_service_account_info(
+            creds_dict,
+            scopes=["https://www.googleapis.com/auth/calendar"]
+        )
+        return build("calendar", "v3", credentials=credentials)
+    except Exception as e:
+        # --- DIAGNOSTIC SAFETY NET DISPLAY ---
+        st.error("🚨 Google Authentication Failed - Private Key Formatting Error")
+        st.warning("Streamlit is corrupting the Private Key. Here is exactly what Python is receiving:")
+        st.markdown(f"**Error Message:** `{e}`")
+        pk_repr = repr(pk)
+        st.info("Please copy and paste these two lines back to me:")
+        st.code(f"First 60 chars: {pk_repr[:60]}")
+        st.code(f"Last 60 chars:  {pk_repr[-60:]}")
+        st.stop()
 
 def update_peach_events(event_date, target_count, current_events):
     service = get_calendar_service()
