@@ -1,5 +1,4 @@
 import urllib.request
-import re
 from collections import defaultdict
 from datetime import datetime, date
 import calendar
@@ -321,9 +320,18 @@ def get_calendar_service():
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
-    # This is the standard Streamlit Cloud fix for Google private keys.
+    # --- THE ULTIMATE FORMATTING FIX ---
+    # This automatically cleans up any invisible spaces, indents, or formatting issues 
+    # that Streamlit accidentally introduced in the Secrets text box.
     if "private_key" in creds_dict:
-        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        raw_key = creds_dict["private_key"]
+        
+        # 1. Convert any literal "\n" strings into actual structural newlines
+        raw_key = raw_key.replace("\\n", "\n")
+        
+        # 2. Break it apart, strip ALL invisible leading/trailing spaces, and put it back together perfectly.
+        cleaned_lines = [line.strip() for line in raw_key.split('\n') if line.strip()]
+        creds_dict["private_key"] = "\n".join(cleaned_lines)
 
     credentials = service_account.Credentials.from_service_account_info(
         creds_dict,
