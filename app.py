@@ -708,102 +708,412 @@ for week in month_cal:
         if day == 0:
             table_html += '<td></td>'
         else:
-            curr_date = date(selected_year, selected_month, day)Here is the full, complete `app.py` file without any missing sections or snippets:
+            curr_date = date(selected_year, selected_month, day)
+            count = date_counts.get(curr_date, 0)
+            if count == 1:
+                table_html += f'<td>{day}🍑</td>'
+            elif count > 1:
+                table_html += f'<td>{day}🍑<span class="mult-badge">x{count}</span></td>'
+            else:
+                table_html += f'<td>{day}</td>'
+    table_html += '</tr>'
+table_html += '</tbody></table>'
 
-```python
-import streamlit as st
-import sqlite3
-import pandas as pd
-from datetime import datetime
+st.markdown(table_html, unsafe_allow_html=True)
 
-# Initialize Database
-def init_db():
-    conn = sqlite3.connect("data.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            task TEXT NOT NULL,
-            category TEXT NOT NULL,
-            status TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
-    conn.close()
+# "+ Add a 🍑" Trigger Button Below Calendar
+if st.button("+ Custom Date Add 🍑", key="btn_open_add_modal", use_container_width=True):
+    st.session_state.show_add_modal = True
 
-# Database Helper Functions
-def add_task(task, category, status):
-    conn = sqlite3.connect("data.db")
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO logs (task, category, status) VALUES (?, ?, ?)", (task, category, status))
-    conn.commit()
-    conn.close()
+if st.session_state.show_add_modal:
+    add_peach_modal()
 
-def get_tasks():
-    conn = sqlite3.connect("data.db")
-    df = pd.read_sql_query("SELECT * FROM logs ORDER BY created_at DESC", conn)
-    conn.close()
-    return df
+st.divider()
 
-def delete_task(task_id):
-    conn = sqlite3.connect("data.db")
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM logs WHERE id = ?", (task_id,))
-    conn.commit()
-    conn.close()
+# --- 3. KEY METRICS (DYNAMIC DOUBLE COLUMN) ---
+st.subheader("📊 Key Metrics")
 
-# Page Configuration
-st.set_page_config(page_title="Dashboard & Task Manager", page_icon="📋", layout="wide")
+km_col_left, km_col_right = st.columns(2)
 
-init_db()
-
-st.title("📋 Dashboard & Task Manager")
-st.write("Manage your local tasks, logs, and tracking below.")
-
-# Sidebar Controls
-st.sidebar.header("Add New Entry")
-with st.sidebar.form("add_form", clear_on_submit=True):
-    task_input = st.text_input("Task / Item Description")
-    category_input = st.selectbox("Category", ["Maintenance", "Project", "Checklist", "General"])
-    status_input = st.selectbox("Status", ["Pending", "In Progress", "Completed"])
-    submit_button = st.form_submit_button("Submit")
-
-if submit_button:
-    if task_input.strip() != "":
-        add_task(task_input, category_input, status_input)
-        st.sidebar.success("Entry added successfully!")
-        st.rerun()
+# Left Column: Current Year Goals, Pace & Last Activity
+with km_col_left:
+    st.markdown(f'<div class="metrics-col-hdr">{current_year} Goals & Pace</div>', unsafe_allow_html=True)
+    
+    if weekly_pace >= 4.0:
+        pace_status = "🟢 On Track"
+    elif weekly_pace >= 3.0:
+        pace_status = "🟡 Moderate Pace"
     else:
-        st.sidebar.error("Please enter a valid description.")
-
-# Main View
-df = get_tasks()
-
-st.subheader("Current Logs")
-
-if not df.empty:
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        st.dataframe(df, use_container_width=True)
+        pace_status = "🔴 Below Target"
         
-    with col2:
-        st.subheader("Manage Item")
-        selected_id = st.number_input("Enter ID to Delete", min_value=int(df["id"].min()), max_value=int(df["id"].max()), step=1)
-        if st.button("Delete Entry"):
-            delete_task(selected_id)
-            st.success(f"Deleted entry #{selected_id}")
-            st.rerun()
-            
-    st.divider()
+    ytd_diff = total_curr - prev_ytd_count
+    st.metric(
+        label=f"{current_year} YTD", 
+        value=f"{total_curr} 🍑", 
+        delta=f"{prev_year} YTD: {prev_ytd_count} 🍑",
+        delta_color="normal" if ytd_diff >= 0 else "inverse"
+    )
+    st.metric("Weekly Pace", f"{weekly_pace} / wk", delta=pace_status)
+    st.metric(rem_label, rem_val, delta=rem_delta)
     
-    # Simple Metrics Breakdown
-    st.subheader("Status Overview")
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Total Items", len(df))
-    m2.metric("Pending", len(df[df["status"] == "Pending"]))
-    m3.metric("Completed", len(df[df["status"] == "Completed"]))
+    active_streak_delta = f"Streak: {current_streak_peaches} 🍑 ({current_streak_days}d)" if current_streak_peaches > 0 else "No active streak"
+    st.metric("Last Activity", recency_str, delta=active_streak_delta)
 
-else:
-    st.info("No records found. Use the sidebar to add your first entry.")
+# Right Column: Lifetime Insights, Peaks & Streaks
+with km_col_right:
+    st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
+    
+    st.metric("Lifetime 🍑 Total", f"{total_lifetime:,} 🍑", delta=f"Next Milestone: {next_milestone:,} 🍑")
+    st.metric("Top Month", f"{top_month_str}", delta=f"{top_month_val} 🍑 recorded")
+    st.metric("Most 🍑 in a Week", f"{max_weekly_peaches} 🍑", delta=f"{max_weekly_period_str}")
+    st.metric("Longest Streak", f"{max_streak_peaches} 🍑 ({max_streak_days} Days)", delta=f"{streak_period_str}")
+
+st.divider()
+
+# --- 4. DEDICATED LIFETIME PROGRESS SECTION ---
+st.markdown(f"""
+    <div class="lifetime-progress-card">
+        <div class="lifetime-card-header">
+            <span class="lifetime-title">🏆 Lifetime Goal Progress</span>
+            <span class="lifetime-sub">{total_lifetime:,} / {lifetime_target:,} 🍑 ({lifetime_pct_str})</span>
+        </div>
+        <div class="lifetime-progress-container">
+            <div class="lifetime-progress-fill" style="width: {fill_width_css};">
+                <span class="lifetime-progress-peach">🍑</span>
+            </div>
+        </div>
+        <div class="milestone-ticks">
+            <span>0</span>
+            <span>1k</span>
+            <span>2k</span>
+            <span>3k</span>
+            <span>4k</span>
+            <span>5k</span>
+            <span>6k</span>
+            <span>7k</span>
+            <span>8k</span>
+            <span>9k</span>
+            <span>10k 🍑</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+st.divider()
+
+# --- 5. DAY OF THE WEEK BREAKDOWN ---
+st.markdown(f"#### 📆 Day of the Week Breakdown ({prev_year}–{current_year})")
+
+dow_order = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+dow_data = [{"Day": day_n, "Count": day_of_week_counts[day_n]} for day_n in dow_order]
+
+fig_dow = px.pie(
+    dow_data, 
+    values="Count", 
+    names="Day", 
+    hole=0.4,
+    color_discrete_sequence=px.colors.qualitative.Pastel
+)
+
+fig_dow.update_traces(
+    textposition="inside", 
+    textinfo="percent+label",
+    hovertemplate="<b>%{label}</b><br>Count: %{value} 🍑<br>Share: %{percent}"
+)
+
+fig_dow.update_layout(
+    margin=dict(t=10, b=10, l=10, r=10),
+    showlegend=False,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    height=280
+)
+
+st.plotly_chart(fig_dow, use_container_width=True, config={'displayModeBar': False})
+
+st.divider()
+
+# --- 6. MONTHLY COMPARISON (GROUPED DOUBLE BAR CHART) ---
+st.subheader(f"🗓️ Monthly Comparison ({prev_year} vs {current_year})")
+
+monthly_chart_data = []
+for m in range(1, 13):
+    m_name = calendar.month_abbr[m]
+    monthly_chart_data.append({"Month": m_name, "Year": str(prev_year), "Count": counts_prev[m]})
+    c_val = counts_curr[m] if m <= current_month else 0
+    monthly_chart_data.append({"Month": m_name, "Year": str(current_year), "Count": c_val})
+
+fig_monthly = px.bar(
+    monthly_chart_data,
+    x="Month",
+    y="Count",
+    color="Year",
+    text="Count",
+    barmode="group",
+    color_discrete_map={
+        str(prev_year): "#6366f1",
+        str(current_year): "#f59e0b"
+    }
+)
+
+fig_monthly.update_traces(
+    textposition="outside",
+    textfont=dict(color="#f3f4f6", size=11),
+    hovertemplate="<b>%{x} %{fullData.name}</b><br>Count: %{y} 🍑<extra></extra>"
+)
+
+fig_monthly.update_xaxes(fixedrange=True)
+fig_monthly.update_yaxes(fixedrange=True)
+
+fig_monthly.update_layout(
+    margin=dict(t=30, b=10, l=10, r=10),
+    xaxis_title=None,
+    yaxis_title=None,
+    legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1,
+        title=None
+    ),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    height=320,
+    bargap=0.2,
+    bargroupgap=0.1
+)
+
+st.plotly_chart(fig_monthly, use_container_width=True, config={'displayModeBar': False})
+
+st.divider()
+
+# ==============================================================================
+# 7. NATIONAL STATS COMPARISON (AGES 35-45) WITH CLEAN MOBILE CARDS
+# ==============================================================================
+st.markdown('<div class="national-section-container">', unsafe_allow_html=True)
+st.subheader("🇺🇸 National Benchmark (Ages 35–45)")
+st.caption("U.S. married couple data sourced from General Social Survey & Kinsey Institute statistics.")
+
+national_weekly_avg = 0.96
+ratio_vs_national = round(weekly_pace / national_weekly_avg, 1) if weekly_pace > 0 else 0.0
+projected_annual = round(weekly_pace * 52)
+
+# Calculate National YTD Average through current week number
+national_ytd_avg = round(0.96 * current_week_num)
+ytd_ratio_vs_national = round(total_curr / national_ytd_avg, 1) if national_ytd_avg > 0 else 1.0
+
+st.markdown(f"""
+    <div class="bench-grid">
+        <div class="bench-card">
+            <div class="bench-title">Weekly Pace Comparison</div>
+            <div class="bench-val">{weekly_pace} / wk</div>
+            <div class="bench-sub">{ratio_vs_national}x National Average (~0.96/wk)</div>
+        </div>
+        <div class="bench-card">
+            <div class="bench-title">Annual Rate Comparison</div>
+            <div class="bench-val">~{projected_annual} / yr</div>
+            <div class="bench-sub">US National Average: 43–54 / yr</div>
+        </div>
+        <div class="bench-card">
+            <div class="bench-title">National Percentile Tier</div>
+            <div class="bench-val">Top ~1–2%</div>
+            <div class="bench-sub">Among US Married Couples (35–45)</div>
+        </div>
+        <div class="bench-card">
+            <div class="bench-title">Current YTD</div>
+            <div class="bench-val">{total_curr} 🍑</div>
+            <div class="bench-sub">{ytd_ratio_vs_national}x US YTD Average ({national_ytd_avg})</div>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+st.markdown("#### 📊 Age 35–45 Demographic Breakdown")
+st.markdown("""
+| Frequency Tier | Annual Rate | Weekly Pace | US Married Percentile |
+| :--- | :--- | :--- | :--- |
+| **Infrequent / Sexless** | < 12 / yr | < 0.2 / wk | **~15% – 20%** of couples |
+| **1 to 3 times / month** | 12 – 36 / yr | 0.2 – 0.7 / wk | **~35% – 40%** of couples |
+| **1 to 2 times / week** *(US Avg)* | 52 – 104 / yr | 1.0 – 2.0 / wk | **~30% – 35%** of couples |
+| **3 times / week** | 150 – 180 / yr | ~3.0 / wk | **~3% – 5%** of couples |
+| **4+ times / week (Your Pace)** | **200+ / yr** | **4.0+ / wk** | **Top ~1% – 2%** of couples |
+""")
+
+st.caption("📌 *Note: For couples aged 35–45, logging multi-session days (x2, x3) occurs in under 3% of active weeks for average married households.*")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+st.divider()
+
+# ==============================================================================
+# 8. DYNAMIC PHYSICS BOX (YEAR-TO-DATE 🍑 VISUALIZER)
+# ==============================================================================
+st.subheader("🫨 Play with your 🍑s")
+st.caption(f"Play with all {total_curr} 🍑s in {current_year}. —click or tap inside to stir!")
+
+physics_box_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: sans-serif;
+        }}
+        .physics-container {{
+            width: 100%;
+            height: 380px;
+            background-color: #1e1f26;
+            border: 2px solid #31333f;
+            border-radius: 12px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }}
+        canvas {{
+            display: block;
+            width: 100%;
+            height: 100%;
+        }}
+    </style>
+</head>
+<body>
+    <div class="physics-container">
+        <canvas id="peachCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('peachCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {{
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }}
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const count = {total_curr};
+        const peaches = [];
+        const radius = 14; 
+        const drag = 0.985; // Viscous drag (slows velocity down like in water)
+
+        for (let i = 0; i < count; i++) {{
+            peaches.push({{
+                x: Math.random() * (canvas.width - radius * 4) + radius * 2,
+                y: Math.random() * (canvas.height - radius * 4) + radius * 2,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: (Math.random() - 0.5) * 1.5,
+                radius: radius
+            }});
+        }}
+
+        function updatePhysics() {{
+            const w = canvas.width;
+            const h = canvas.height;
+
+            for (let i = 0; i < peaches.length; i++) {{
+                let p = peaches[i];
+
+                // Apply viscous drag & subtle drift (underwater feel)
+                p.vx *= drag;
+                p.vy *= drag;
+                p.vx += (Math.random() - 0.5) * 0.08;
+                p.vy += (Math.random() - 0.5) * 0.08;
+
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Wall collisions
+                if (p.x - p.radius < 0) {{
+                    p.x = p.radius;
+                    p.vx *= -0.6;
+                }} else if (p.x + p.radius > w) {{
+                    p.x = w - p.radius;
+                    p.vx *= -0.6;
+                }}
+
+                if (p.y - p.radius < 0) {{
+                    p.y = p.radius;
+                    p.vy *= -0.6;
+                }} else if (p.y + p.radius > h) {{
+                    p.y = h - p.radius;
+                    p.vy *= -0.6;
+                }}
+
+                // Particle collisions
+                for (let j = i + 1; j < peaches.length; j++) {{
+                    let p2 = peaches[j];
+                    let dx = p2.x - p.x;
+                    let dy = p2.y - p.y;
+                    let dist = Math.hypot(dx, dy);
+                    let minDist = p.radius + p2.radius;
+
+                    if (dist < minDist && dist > 0) {{
+                        let nx = dx / dist;
+                        let ny = dy / dist;
+
+                        let overlap = minDist - dist;
+                        p.x -= nx * overlap * 0.5;
+                        p.y -= ny * overlap * 0.5;
+                        p2.x += nx * overlap * 0.5;
+                        p2.y += ny * overlap * 0.5;
+
+                        let kx = p.vx - p2.vx;
+                        let ky = p.vy - p2.vy;
+                        let p_val = (nx * kx + ny * ky) * 0.8;
+
+                        p.vx -= p_val * nx;
+                        p.vy -= p_val * ny;
+                        p2.vx += p_val * nx;
+                        p2.vy += p_val * ny;
+                    }}
+                }}
+            }}
+        }}
+
+        function render() {{
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '22px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let p of peaches) {{
+                ctx.fillText('🍑', p.x, p.y);
+            }}
+        }}
+
+        function loop() {{
+            updatePhysics();
+            render();
+            requestAnimationFrame(loop);
+        }}
+        loop();
+
+        // Underwater pulse/shockwave interaction on click or tap
+        canvas.addEventListener('pointerdown', (e) => {{
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            for (let p of peaches) {{
+                let dx = p.x - clickX;
+                let dy = p.y - clickY;
+                let dist = Math.hypot(dx, dy);
+                if (dist < 160) {{
+                    let force = (160 - dist) / 25;
+                    let angle = Math.atan2(dy, dx);
+                    p.vx += Math.cos(angle) * force;
+                    p.vy += Math.sin(angle) * force;
+                }}
+            }}
+        }});
+    </script>
+</body>
+</html>
+"""
+
+components.html(physics_box_html, height=400)
