@@ -1,5 +1,6 @@
 import urllib.request
 import re
+import textwrap
 from collections import defaultdict
 from datetime import datetime, date
 import calendar
@@ -321,19 +322,29 @@ def get_calendar_service():
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
-    if "private_key" in creds_dict:
-        key_str = str(creds_dict["private_key"]).strip()
-        # Clean up quotes if wrapped
-        if (key_str.startswith('"') and key_str.endswith('"')) or (key_str.startswith("'") and key_str.endswith("'")):
-            key_str = key_str[1:-1]
+    # --- ULTIMATE PEM KEY RECONSTRUCTOR ---
+    key_str = str(creds_dict.get("private_key", ""))
+    
+    # Strip literal quotation marks if copied by accident
+    if key_str.startswith('"') and key_str.endswith('"'):
+        key_str = key_str[1:-1]
+    if key_str.startswith("'") and key_str.endswith("'"):
+        key_str = key_str[1:-1]
         
-        # Ensure proper PEM newline formatting
-        key_str = key_str.replace("\\n", "\n")
-        if "BEGIN PRIVATE KEY" in key_str and not key_str.endswith("\n"):
-            key_str += "\n"
+    if "-----BEGIN PRIVATE KEY-----" in key_str:
+        try:
+            # Extract just the raw base64 data between the headers
+            payload = key_str.split("-----BEGIN PRIVATE KEY-----")[-1].split("-----END PRIVATE KEY-----")[0]
+            # Nuke ALL whitespace, literal '\n' characters, tabs, and actual newlines
+            payload = payload.replace(" ", "").replace("\\n", "").replace("\n", "").replace("\r", "").replace("\\", "").replace("t", "")
+            # Re-wrap cleanly to exact 64 character lines as required by the cryptography library
+            wrapped_payload = "\n".join(textwrap.wrap(payload, 64))
+            # Stitch the header and footer back together properly
+            key_str = f"-----BEGIN PRIVATE KEY-----\n{wrapped_payload}\n-----END PRIVATE KEY-----\n"
+            creds_dict["private_key"] = key_str
+        except Exception:
+            pass # Fallback if regex split fails
             
-        creds_dict["private_key"] = key_str
-
     credentials = service_account.Credentials.from_service_account_info(
         creds_dict,
         scopes=["https://www.googleapis.com/auth/calendar"]
