@@ -1,6 +1,5 @@
 import urllib.request
 import re
-import textwrap
 from collections import defaultdict
 from datetime import datetime, date
 import calendar
@@ -315,7 +314,6 @@ def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
-    # Create a copy of the dict to modify safely
     creds_dict = dict(st.secrets["gcp_service_account"])
     
     if "token_uri" not in creds_dict:
@@ -323,24 +321,9 @@ def get_calendar_service():
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
+    # This is the standard Streamlit Cloud fix for Google private keys.
     if "private_key" in creds_dict:
-        pk = str(creds_dict["private_key"])
-        
-        # --- BULLETPROOF PEM RECONSTRUCTOR ---
-        # 1. Grab everything between the BEGIN and END tags regardless of formatting
-        match = re.search(r'-----BEGIN PRIVATE KEY-----(.*?)-----END PRIVATE KEY-----', pk, re.DOTALL)
-        if match:
-            raw_key = match.group(1)
-            
-            # 2. Strip out EVERYTHING that isn't a valid Base64 character (A-Z, a-z, 0-9, +, /, =)
-            # This completely bypasses any \n, spacing, or TOML formatting issues.
-            clean_key = re.sub(r'[^A-Za-z0-9+/=]', '', raw_key)
-            
-            # 3. Wrap it into perfect 64-character lines required by cryptography lib
-            wrapped_key = '\n'.join(textwrap.wrap(clean_key, 64))
-            
-            # 4. Final reconstruction 
-            creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped_key}\n-----END PRIVATE KEY-----\n"
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
 
     credentials = service_account.Credentials.from_service_account_info(
         creds_dict,
