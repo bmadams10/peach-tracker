@@ -1,6 +1,5 @@
 import urllib.request
 import re
-import textwrap
 from collections import defaultdict
 from datetime import datetime, date
 import calendar
@@ -315,36 +314,30 @@ def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
+    # Create a mutable dictionary from the secrets
     creds_dict = dict(st.secrets["gcp_service_account"])
     
+    # Set default URIs if missing
     if "token_uri" not in creds_dict:
         creds_dict["token_uri"] = "https://oauth2.googleapis.com/token"
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
-    # --- ULTIMATE PEM KEY RECONSTRUCTOR ---
-    key_str = str(creds_dict.get("private_key", ""))
-    
-    # Strip literal quotation marks if copied by accident
-    if key_str.startswith('"') and key_str.endswith('"'):
-        key_str = key_str[1:-1]
-    if key_str.startswith("'") and key_str.endswith("'"):
-        key_str = key_str[1:-1]
+    # Safely format the private key
+    if "private_key" in creds_dict:
+        private_key = creds_dict["private_key"]
         
-    if "-----BEGIN PRIVATE KEY-----" in key_str:
-        try:
-            # Extract just the raw base64 data between the headers
-            payload = key_str.split("-----BEGIN PRIVATE KEY-----")[-1].split("-----END PRIVATE KEY-----")[0]
-            # Nuke ALL whitespace, literal '\n' characters, tabs, and actual newlines
-            payload = payload.replace(" ", "").replace("\\n", "").replace("\n", "").replace("\r", "").replace("\\", "").replace("t", "")
-            # Re-wrap cleanly to exact 64 character lines as required by the cryptography library
-            wrapped_payload = "\n".join(textwrap.wrap(payload, 64))
-            # Stitch the header and footer back together properly
-            key_str = f"-----BEGIN PRIVATE KEY-----\n{wrapped_payload}\n-----END PRIVATE KEY-----\n"
-            creds_dict["private_key"] = key_str
-        except Exception:
-            pass # Fallback if regex split fails
+        # Remove accidental surrounding quotes
+        if private_key.startswith('"') and private_key.endswith('"'):
+            private_key = private_key[1:-1]
+        elif private_key.startswith("'") and private_key.endswith("'"):
+            private_key = private_key[1:-1]
             
+        # Fix literal escaped newlines that Streamlit Cloud TOML parser sometimes creates
+        private_key = private_key.replace("\\n", "\n")
+        
+        creds_dict["private_key"] = private_key
+
     credentials = service_account.Credentials.from_service_account_info(
         creds_dict,
         scopes=["https://www.googleapis.com/auth/calendar"]
