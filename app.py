@@ -314,29 +314,16 @@ def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
         raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
-    # Create a mutable dictionary from the secrets
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Set default URIs if missing
     if "token_uri" not in creds_dict:
         creds_dict["token_uri"] = "https://oauth2.googleapis.com/token"
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
-    # Safely format the private key
+    # Fallback to replace string-escaped newlines just in case they snuck in
     if "private_key" in creds_dict:
-        private_key = creds_dict["private_key"]
-        
-        # Remove accidental surrounding quotes
-        if private_key.startswith('"') and private_key.endswith('"'):
-            private_key = private_key[1:-1]
-        elif private_key.startswith("'") and private_key.endswith("'"):
-            private_key = private_key[1:-1]
-            
-        # Fix literal escaped newlines that Streamlit Cloud TOML parser sometimes creates
-        private_key = private_key.replace("\\n", "\n")
-        
-        creds_dict["private_key"] = private_key
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
 
     credentials = service_account.Credentials.from_service_account_info(
         creds_dict,
