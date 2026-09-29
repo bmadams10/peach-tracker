@@ -880,7 +880,7 @@ with score_col2:
         </div>
     """, unsafe_allow_html=True)
     
-    with st.expander("ℹ️️ Score Breakdown & Tips"):
+    with st.expander("ℹ️ Score Breakdown & Tips"):
         st.markdown(f"""
         **Score Categories & Tips:**
         * **Volume ({int(c1_score)}/500):** Progress toward your {goal_annual} annual target.
@@ -893,7 +893,7 @@ with score_col2:
           * *Tip:* Log high-energy double or triple days (`x2`, `x3`) to rack up bonus points.
 
         **Rank Thresholds:**
-        * **S Rank (Elite):** 900 – 1000 points *(Hit 900+ for Elite Tier)*
+        * **S Rank (Elite):** 900 – 1000 points
         * **A Rank (Superb):** 800 – 899 points
         * **B Rank (Great):** 650 – 799 points
         * **C Rank (Good):** 500 – 649 points
@@ -968,7 +968,7 @@ st.plotly_chart(fig_dow, use_container_width=True, config={'displayModeBar': Fal
 st.divider()
 
 # --- 7. MONTHLY COMPARISON ---
-st.subheader(f"🗓️️ Monthly Comparison ({prev_year} vs {current_year})")
+st.subheader(f"🗓️ Monthly Comparison ({prev_year} vs {current_year})")
 
 monthly_chart_data = []
 for m in range(1, 13):
