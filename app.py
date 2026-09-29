@@ -446,20 +446,21 @@ weekly_pace = round(total_curr / current_week_num, 2)
 remaining_weeks = max(1, 52 - current_week_num)
 
 goal_annual = 260
+goal_metric_annual = 208
 
-if total_curr < goal_annual:
-    rem_label = "Remaining for Goal"
-    rem_val = f"{goal_annual - total_curr} 🍑"
-    rem_delta = f"Target: {goal_annual}"
-elif total_curr == goal_annual:
+if total_curr < goal_metric_annual:
+    rem_label = "Remaining for 4/wk Goal"
+    rem_val = f"{goal_metric_annual - total_curr} 🍑"
+    rem_delta = f"Target: {goal_metric_annual}"
+elif total_curr == goal_metric_annual:
     rem_label = "Goal Status"
-    rem_val = f"{goal_annual} 🍑"
-    rem_delta = "Goal Reached! 🎉"
+    rem_val = f"{goal_metric_annual} 🍑"
+    rem_delta = "4/wk Goal Reached! 🎉"
 else:
-    over_by = total_curr - goal_annual
-    rem_label = "Over Goal by"
+    over_by = total_curr - goal_metric_annual
+    rem_label = "Over 4/wk Goal by"
     rem_val = f"+{over_by} 🍑"
-    rem_delta = f"Exceeded Target ({goal_annual}) 🎉"
+    rem_delta = f"Exceeded Target ({goal_metric_annual}) 🎉"
 
 # --- MILESTONE CELEBRATIONS ---
 if total_curr >= goal_annual and "celebrated_goal" not in st.session_state:
@@ -569,7 +570,7 @@ else:
     top_day_str, top_day_val, top_day_pct = "—", 0, 0.0
 
 # --- 3. PEACH SCORE CALCULATION ---
-# Component 1: Volume (Max 500 points) based on annual target
+# Component 1: Volume (Max 500 points) based on annual target (260)
 c1_score = min(500, (total_curr / goal_annual) * 500) if goal_annual > 0 else 0
 
 # Component 2: Consistency (Max 200 points) based on active weeks vs total weeks
