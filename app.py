@@ -569,7 +569,7 @@ if day_of_week_counts:
 else:
     top_day_str, top_day_val, top_day_pct = "—", 0, 0.0
 
-# --- 3. PEACH SCORE CALCULATION ---
+# --- 3. PEACH SCORE CALCULATION (NEW SYSTEM) ---
 # Component 1: Volume (Max 500 points) based on annual target (260)
 c1_score = min(500, (total_curr / goal_annual) * 500) if goal_annual > 0 else 0
 
@@ -577,14 +577,7 @@ c1_score = min(500, (total_curr / goal_annual) * 500) if goal_annual > 0 else 0
 active_weeks_curr = len(set(d.isocalendar()[1] for d in events if d.year == current_year))
 c2_score = min(200, (active_weeks_curr / current_week_num) * 200) if current_week_num > 0 else 0
 
-# Component 3: YoY Growth vs Previous Year (Max 200 points)
-c3_score = 0
-if prev_ytd_count > 0:
-    c3_score = min(200, (total_curr / prev_ytd_count) * 160)
-elif total_curr > 0:
-    c3_score = 200
-
-# Component 4: Streaks (Max 100 points, 10 per day of longest current year streak)
+# Component 3: Streaks (Max 100 points, 10 per day of longest current year streak)
 curr_year_dates = sorted([d for d in unique_dates if d.year == current_year])
 max_curr_streak = 0
 if curr_year_dates:
@@ -600,7 +593,11 @@ if curr_year_dates:
     if temp_streak > max_curr_streak:
         max_curr_streak = temp_streak
 
-c4_score = min(100, max_curr_streak * 10)
+c3_score = min(100, max_curr_streak * 10)
+
+# Component 4: Intensity Bonus (Max 200 points) - Rewards multi-session days (x2, x3)
+multi_days_curr = sum(1 for d, count in date_counts.items() if d.year == current_year and count > 1)
+c4_score = min(200, multi_days_curr * 20) # 20 points per multi-session day, maxes out at 10 multi-days
 
 peach_score = int(c1_score + c2_score + c3_score + c4_score)
 
@@ -622,7 +619,7 @@ def get_rank_details(score):
 rank_letter, rank_color, rank_title = get_rank_details(peach_score)
 gauge_threshold_color = "#e5e7eb" if peach_score >= 900 else "#10b981"
 
-# --- 2025 PREVIOUS YEAR SCORE CALCULATOR ---
+# --- 2025 PREVIOUS YEAR SCORE CALCULATOR (UPDATED FOR NEW SYSTEM) ---
 prev_year_dates = sorted([d for d in unique_dates if d.year == prev_year])
 max_prev_streak = 0
 if prev_year_dates:
@@ -641,8 +638,9 @@ if prev_year_dates:
 c1_prev = min(500, (total_prev / goal_annual) * 500) if goal_annual > 0 else 0
 active_weeks_prev = len(set(d.isocalendar()[1] for d in events if d.year == prev_year))
 c2_prev = min(200, (active_weeks_prev / 52) * 200)
-c3_prev = 160 
-c4_prev = min(100, max_prev_streak * 10)
+c3_prev = min(100, max_prev_streak * 10)
+multi_days_prev = sum(1 for d, count in date_counts.items() if d.year == prev_year and count > 1)
+c4_prev = min(200, multi_days_prev * 20)
 
 prev_peach_score = int(c1_prev + c2_prev + c3_prev + c4_prev)
 prev_rank_letter, _, _ = get_rank_details(prev_peach_score)
@@ -846,14 +844,14 @@ st.divider()
 
 # --- 4. THE PEACH SCORE ---
 st.subheader("🏅 The Score")
-st.caption(f"A dynamic 0-1000 index calculating Volume, Consistency, Streaks, and YTD Growth. Requires a full year of tracking to max out.")
+st.caption(f"A dynamic 0-1000 index calculating Volume, Consistency, Streaks, and Intensity. Requires a full year of tracking to max out.")
 
 fig_score = go.Figure(go.Indicator(
     mode = "gauge+number",
     value = peach_score,
     domain = {'x': [0, 1], 'y': [0, 1]},
     gauge = {
-        'axis': {'range': [0, 1000], 'tickwidth': 1, 'tickcolor': "#31333f"},
+        'axis': {'range': [0, 1000], 'tickwidth': 1, 'tickcolor": "#31333f"},
         'bar': {'color': rank_color},
         'bgcolor': "rgba(0,0,0,0)",
         'borderwidth': 2,
@@ -886,8 +884,8 @@ with score_col2:
     **Score Breakdown:**
     * **Volume ({int(c1_score)}/500):** Progress toward {goal_annual}.
     * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} of {current_week_num} wks.
-    * **Growth ({int(c3_score)}/200):** YTD vs {prev_year} ({prev_ytd_count} 🍑).
-    * **Streaks ({int(c4_score)}/100):** Longest {current_year} run ({max_curr_streak} days).
+    * **Streaks ({int(c3_score)}/100):** Longest {current_year} run ({max_curr_streak} days).
+    * **Intensity ({int(c4_score)}/200):** Multi-session days ({multi_days_curr} logged).
     
     *Hit 900+ for Elite Tier.*<br>
     **{prev_year} Final Score:** {prev_peach_score} / 1000 ({prev_rank_letter} Rank)
