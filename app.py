@@ -569,22 +569,63 @@ else:
     top_day_str, top_day_val, top_day_pct = "—", 0, 0.0
 
 # --- 3. PEACH SCORE CALCULATION ---
-# Component 1: Volume (Max 500 points) based on 260 target
-c1_score = min(500, (total_curr / goal_annual) * 500)
+# Component 1: Volume (Max 500 points) based on annual target
+c1_score = min(500, (total_curr / goal_annual) * 500) if goal_annual > 0 else 0
 
-# Component 2: Consistency (Max 300 points) based on active weeks vs total weeks
+# Component 2: Consistency (Max 200 points) based on active weeks vs total weeks
 active_weeks_curr = len(set(d.isocalendar()[1] for d in events if d.year == current_year))
-c2_score = min(300, (active_weeks_curr / current_week_num) * 300) if current_week_num > 0 else 0
+c2_score = min(200, (active_weeks_curr / current_week_num) * 200) if current_week_num > 0 else 0
 
-# Component 3: YoY Growth vs 2025 (Max 200 points)
+# Component 3: YoY Growth vs Previous Year (Max 200 points)
 c3_score = 0
 if prev_ytd_count > 0:
-    # Matching last year = 160 points. Beating it by 25% = 200 points.
     c3_score = min(200, (total_curr / prev_ytd_count) * 160)
 elif total_curr > 0:
     c3_score = 200
 
-peach_score = int(c1_score + c2_score + c3_score)
+# Component 4: Streaks (Max 100 points, 10 per day of longest current year streak)
+curr_year_dates = sorted([d for d in unique_dates if d.year == current_year])
+max_curr_streak = 0
+if curr_year_dates:
+    temp_streak = 1
+    max_curr_streak = 1
+    for i in range(1, len(curr_year_dates)):
+        if (curr_year_dates[i] - curr_year_dates[i-1]).days == 1:
+            temp_streak += 1
+        else:
+            if temp_streak > max_curr_streak:
+                max_curr_streak = temp_streak
+            temp_streak = 1
+    if temp_streak > max_curr_streak:
+        max_curr_streak = temp_streak
+
+c4_score = min(100, max_curr_streak * 10)
+
+peach_score = int(c1_score + c2_score + c3_score + c4_score)
+
+# --- 2025 PREVIOUS YEAR SCORE CALCULATOR ---
+prev_year_dates = sorted([d for d in unique_dates if d.year == prev_year])
+max_prev_streak = 0
+if prev_year_dates:
+    temp_streak = 1
+    max_prev_streak = 1
+    for i in range(1, len(prev_year_dates)):
+        if (prev_year_dates[i] - prev_year_dates[i-1]).days == 1:
+            temp_streak += 1
+        else:
+            if temp_streak > max_prev_streak:
+                max_prev_streak = temp_streak
+            temp_streak = 1
+    if temp_streak > max_prev_streak:
+        max_prev_streak = temp_streak
+
+c1_prev = min(500, (total_prev / goal_annual) * 500) if goal_annual > 0 else 0
+active_weeks_prev = len(set(d.isocalendar()[1] for d in events if d.year == prev_year))
+c2_prev = min(200, (active_weeks_prev / 52) * 200)
+c3_prev = 160 # Standard baseline since previous year growth is unknown
+c4_prev = min(100, max_prev_streak * 10)
+
+prev_peach_score = int(c1_prev + c2_prev + c3_prev + c4_prev)
 
 # Initialize Session State
 if "cal_year" not in st.session_state:
@@ -782,8 +823,8 @@ with km_col_right:
 st.divider()
 
 # --- 4. THE PEACH SCORE ---
-st.subheader("🏅 The Peach Score")
-st.caption(f"A dynamic 0-1000 index calculating Volume, Consistency, and YTD Growth. Requires a full year of tracking to max out.")
+st.subheader("🏅 The Score")
+st.caption(f"A dynamic 0-1000 index calculating Volume, Consistency, Streaks, and YTD Growth. Requires a full year of tracking to max out.")
 
 fig_score = go.Figure(go.Indicator(
     mode = "gauge+number",
@@ -814,11 +855,13 @@ with score_col2:
     st.markdown(f"""
     **Score Breakdown:**
     * **Volume ({int(c1_score)}/500):** Progress toward the {goal_annual} target.
-    * **Consistency ({int(c2_score)}/300):** Active {active_weeks_curr} weeks out of {current_week_num}.
+    * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} weeks out of {current_week_num}.
     * **Growth ({int(c3_score)}/200):** YTD vs {prev_year} ({prev_ytd_count} 🍑).
+    * **Streaks ({int(c4_score)}/100):** Longest {current_year} run ({max_curr_streak} days).
     
-    *Hit 900+ for Elite Tier.*
-    """)
+    *Hit 900+ for Elite Tier.*<br>
+    **{prev_year} Final Score:** {prev_peach_score} / 1000
+    """, unsafe_allow_html=True)
 
 st.divider()
 
