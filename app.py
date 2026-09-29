@@ -603,6 +603,23 @@ c4_score = min(100, max_curr_streak * 10)
 
 peach_score = int(c1_score + c2_score + c3_score + c4_score)
 
+# --- RANK DETERMINATION LOGIC ---
+def get_rank_details(score):
+    if score >= 900:
+        return "S", "#e5e7eb", "Elite"      # Platinum/Silver
+    elif score >= 800:
+        return "A", "#10b981", "Superb"     # Green
+    elif score >= 700:
+        return "B", "#3b82f6", "Great"      # Blue
+    elif score >= 600:
+        return "C", "#f59e0b", "Good"       # Yellow
+    elif score >= 500:
+        return "D", "#f97316", "Developing" # Orange
+    else:
+        return "F", "#ef4444", "Beginner"   # Red
+
+rank_letter, rank_color, rank_title = get_rank_details(peach_score)
+
 # --- 2025 PREVIOUS YEAR SCORE CALCULATOR ---
 prev_year_dates = sorted([d for d in unique_dates if d.year == prev_year])
 max_prev_streak = 0
@@ -622,10 +639,11 @@ if prev_year_dates:
 c1_prev = min(500, (total_prev / goal_annual) * 500) if goal_annual > 0 else 0
 active_weeks_prev = len(set(d.isocalendar()[1] for d in events if d.year == prev_year))
 c2_prev = min(200, (active_weeks_prev / 52) * 200)
-c3_prev = 160 # Standard baseline since previous year growth is unknown
+c3_prev = 160 
 c4_prev = min(100, max_prev_streak * 10)
 
 prev_peach_score = int(c1_prev + c2_prev + c3_prev + c4_prev)
+prev_rank_letter, _, _ = get_rank_details(prev_peach_score)
 
 # Initialize Session State
 if "cal_year" not in st.session_state:
@@ -855,14 +873,21 @@ with score_col1:
     st.plotly_chart(fig_score, use_container_width=True, config={'displayModeBar': False})
 with score_col2:
     st.markdown(f"""
+        <div style="background-color: #1e1f26; border: 1px solid #31333f; border-radius: 8px; padding: 12px; margin-bottom: 15px; text-align: center;">
+            <div style="font-size: 12px; color: #a1a1aa; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Current Rank</div>
+            <div style="font-size: 36px; font-weight: 900; color: {rank_color}; line-height: 1.1;">{rank_letter} <span style="font-size: 18px; color: #f3f4f6;">Rank</span></div>
+            <div style="font-size: 14px; color: {rank_color}; font-weight: 600;">{rank_title} Tier</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
     **Score Breakdown:**
-    * **Volume ({int(c1_score)}/500):** Progress toward the {goal_annual} target.
-    * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} weeks out of {current_week_num}.
+    * **Volume ({int(c1_score)}/500):** Progress toward {goal_annual}.
+    * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} of {current_week_num} wks.
     * **Growth ({int(c3_score)}/200):** YTD vs {prev_year} ({prev_ytd_count} 🍑).
     * **Streaks ({int(c4_score)}/100):** Longest {current_year} run ({max_curr_streak} days).
     
-    *Hit 900+ for Elite Tier.*<br>
-    **{prev_year} Final Score:** {prev_peach_score} / 1000
+    **{prev_year} Final Score:** {prev_peach_score} / 1000 ({prev_rank_letter} Rank)
     """, unsafe_allow_html=True)
 
 st.divider()
@@ -1202,6 +1227,3 @@ physics_box_html = f"""
     </script>
 </body>
 </html>
-"""
-
-components.html(physics_box_html, height=400)
