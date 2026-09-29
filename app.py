@@ -859,7 +859,7 @@ fig_score = go.Figure(go.Indicator(
         'steps': [
             {'range': [0, 300], 'color': "#1e1f26"},
             {'range': [300, 700], 'color': "#2c2c2e"},
-            {'range': [700, 1000], 'color": "#3f3f46"}],
+            {'range': [700, 1000], 'color': "#3f3f46"}],
         'threshold': {
             'line': {'color': gauge_threshold_color, 'width': 4},
             'thickness': 0.75,
@@ -880,13 +880,13 @@ with score_col2:
         </div>
     """, unsafe_allow_html=True)
     
-    with st.expander("ℹ️ Score Breakdown & Tips"):
+    with st.expander("ℹ️️ Score Breakdown & Tips"):
         st.markdown(f"""
         **Score Categories & Tips:**
         * **Volume ({int(c1_score)}/500):** Progress toward your {goal_annual} annual target.
           * *Tip:* Keep a steady 5/wk pace to max out this heavy-lifter category.
         * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} of {current_week_num} total weeks.
-          * *Tip:* Avoid long dry spells; record atleştir once every week to protect this score.
+          * *Tip:* Avoid long dry spells; record at least once every week to protect this score.
         * **Streaks ({int(c3_score)}/100):** Longest current year run ({max_curr_streak} days).
           * *Tip:* String together back-to-back daily entries (up to 10 days) for quick bonus points.
         * **Intensity ({int(c4_score)}/200):** Multi-session days ({multi_days_curr} logged).
@@ -968,7 +968,7 @@ st.plotly_chart(fig_dow, use_container_width=True, config={'displayModeBar': Fal
 st.divider()
 
 # --- 7. MONTHLY COMPARISON ---
-st.subheader(f"🗓️ Monthly Comparison ({prev_year} vs {current_year})")
+st.subheader(f"🗓️️ Monthly Comparison ({prev_year} vs {current_year})")
 
 monthly_chart_data = []
 for m in range(1, 13):
