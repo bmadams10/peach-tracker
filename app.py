@@ -609,11 +609,11 @@ def get_rank_details(score):
         return "S", "#e5e7eb", "Elite"      # Silver
     elif score >= 800:
         return "A", "#10b981", "Superb"     # Green
-    elif score >= 700:
+    elif score >= 650:
         return "B", "#3b82f6", "Great"      # Blue
-    elif score >= 600:
-        return "C", "#f59e0b", "Good"       # Yellow
     elif score >= 500:
+        return "C", "#f59e0b", "Good"       # Amber
+    elif score >= 300:
         return "D", "#f97316", "Developing" # Orange
     else:
         return "F", "#ef4444", "Beginner"   # Red
@@ -957,7 +957,7 @@ st.plotly_chart(fig_dow, use_container_width=True, config={'displayModeBar': Fal
 st.divider()
 
 # --- 7. MONTHLY COMPARISON ---
-st.subheader(f"🗓️️ Monthly Comparison ({prev_year} vs {current_year})")
+st.subheader(f"🗓️ Monthly Comparison ({prev_year} vs {current_year})")
 
 monthly_chart_data = []
 for m in range(1, 13):
