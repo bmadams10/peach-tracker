@@ -606,17 +606,17 @@ peach_score = int(c1_score + c2_score + c3_score + c4_score)
 # --- RANK DETERMINATION LOGIC ---
 def get_rank_details(score):
     if score >= 900:
-        return "S", "#e5e7eb", "Elite"      # Platinum/Silver
+        return "S", "#e5e7eb", "Elite"      
     elif score >= 800:
-        return "A", "#10b981", "Superb"     # Green
+        return "A", "#10b981", "Superb"     
     elif score >= 700:
-        return "B", "#3b82f6", "Great"      # Blue
+        return "B", "#3b82f6", "Great"      
     elif score >= 600:
-        return "C", "#f59e0b", "Good"       # Yellow
+        return "C", "#f59e0b", "Good"       
     elif score >= 500:
-        return "D", "#f97316", "Developing" # Orange
+        return "D", "#f97316", "Developing" 
     else:
-        return "F", "#ef4444", "Beginner"   # Red
+        return "F", "#ef4444", "Beginner"   
 
 rank_letter, rank_color, rank_title = get_rank_details(peach_score)
 
@@ -887,6 +887,7 @@ with score_col2:
     * **Growth ({int(c3_score)}/200):** YTD vs {prev_year} ({prev_ytd_count} 🍑).
     * **Streaks ({int(c4_score)}/100):** Longest {current_year} run ({max_curr_streak} days).
     
+    *Hit 900+ for Elite Tier.*<br>
     **{prev_year} Final Score:** {prev_peach_score} / 1000 ({prev_rank_letter} Rank)
     """, unsafe_allow_html=True)
 
@@ -1067,19 +1068,19 @@ st.divider()
 st.subheader("🫨 Play with your 🍑s")
 st.caption(f"Play with all {total_curr} 🍑s in {current_year}. —click or tap inside to stir!")
 
-physics_box_html = f"""
+physics_box_raw = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body {{
+        body {
             margin: 0;
             padding: 0;
             background: transparent;
             overflow: hidden;
             font-family: sans-serif;
-        }}
-        .physics-container {{
+        }
+        .physics-container {
             width: 100%;
             height: 380px;
             background-color: #1e1f26;
@@ -1089,12 +1090,12 @@ physics_box_html = f"""
             position: relative;
             overflow: hidden;
             touch-action: none;
-        }}
-        canvas {{
+        }
+        canvas {
             display: block;
             width: 100%;
             height: 100%;
-        }}
+        }
     </style>
 </head>
 <body>
@@ -1106,33 +1107,33 @@ physics_box_html = f"""
         const canvas = document.getElementById('peachCanvas');
         const ctx = canvas.getContext('2d');
 
-        function resizeCanvas() {{
+        function resizeCanvas() {
             canvas.width = canvas.parentElement.clientWidth;
             canvas.height = canvas.parentElement.clientHeight;
-        }}
+        }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        const count = {total_curr};
+        const count = TOTAL_COUNT_PLACEHOLDER;
         const peaches = [];
         const radius = 14; 
         const drag = 0.985; 
 
-        for (let i = 0; i < count; i++) {{
-            peaches.push({{
+        for (let i = 0; i < count; i++) {
+            peaches.push({
                 x: Math.random() * (canvas.width - radius * 4) + radius * 2,
                 y: Math.random() * (canvas.height - radius * 4) + radius * 2,
                 vx: (Math.random() - 0.5) * 1.5,
                 vy: (Math.random() - 0.5) * 1.5,
                 radius: radius
-            }});
-        }}
+            });
+        }
 
-        function updatePhysics() {{
+        function updatePhysics() {
             const w = canvas.width;
             const h = canvas.height;
 
-            for (let i = 0; i < peaches.length; i++) {{
+            for (let i = 0; i < peaches.length; i++) {
                 let p = peaches[i];
 
                 p.vx *= drag;
@@ -1143,30 +1144,30 @@ physics_box_html = f"""
                 p.x += p.vx;
                 p.y += p.vy;
 
-                if (p.x - p.radius < 0) {{
+                if (p.x - p.radius < 0) {
                     p.x = p.radius;
                     p.vx *= -0.6;
-                }} else if (p.x + p.radius > w) {{
+                } else if (p.x + p.radius > w) {
                     p.x = w - p.radius;
                     p.vx *= -0.6;
-                }}
+                }
 
-                if (p.y - p.radius < 0) {{
+                if (p.y - p.radius < 0) {
                     p.y = p.radius;
                     p.vy *= -0.6;
-                }} else if (p.y + p.radius > h) {{
+                } else if (p.y + p.radius > h) {
                     p.y = h - p.radius;
                     p.vy *= -0.6;
-                }}
+                }
 
-                for (let j = i + 1; j < peaches.length; j++) {{
+                for (let j = i + 1; j < peaches.length; j++) {
                     let p2 = peaches[j];
                     let dx = p2.x - p.x;
                     let dy = p2.y - p.y;
                     let dist = Math.hypot(dx, dy);
                     let minDist = p.radius + p2.radius;
 
-                    if (dist < minDist && dist > 0) {{
+                    if (dist < minDist && dist > 0) {
                         let nx = dx / dist;
                         let ny = dy / dist;
 
@@ -1184,46 +1185,50 @@ physics_box_html = f"""
                         p.vy -= p_val * ny;
                         p2.vx += p_val * nx;
                         p2.vy += p_val * ny;
-                    }}
-                }}
-            }}
-        }}
+                    }
+                }
+            }
+        }
 
-        function render() {{
+        function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = '22px serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            for (let p of peaches) {{
+            for (let p of peaches) {
                 ctx.fillText('🍑', p.x, p.y);
-            }}
-        }}
+            }
+        }
 
-        function loop() {{
+        function loop() {
             updatePhysics();
             render();
             requestAnimationFrame(loop);
-        }}
+        }
         loop();
 
-        canvas.addEventListener('pointerdown', (e) => {{
+        canvas.addEventListener('pointerdown', (e) => {
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
 
-            for (let p of peaches) {{
+            for (let p of peaches) {
                 let dx = p.x - clickX;
                 let dy = p.y - clickY;
                 let dist = Math.hypot(dx, dy);
-                if (dist < 160) {{
+                if (dist < 160) {
                     let force = (160 - dist) / 25;
                     let angle = Math.atan2(dy, dx);
                     p.vx += Math.cos(angle) * force;
                     p.vy += Math.sin(angle) * force;
-                }}
-            }}
-        }});
+                }
+            }
+        });
     </script>
 </body>
 </html>
+"""
+
+physics_box_html = physics_box_raw.replace("TOTAL_COUNT_PLACEHOLDER", str(total_curr))
+components.html(physics_box_html, height=400)
