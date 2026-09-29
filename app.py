@@ -853,12 +853,12 @@ fig_score = go.Figure(go.Indicator(
     gauge = {
         'axis': {'range': [0, 1000], 'tickwidth': 1, 'tickcolor': "#31333f"},
         'bar': {'color': rank_color},
-        'bgcolor": "rgba(0,0,0,0)",
+        'bgcolor': "rgba(0,0,0,0)",
         'borderwidth': 2,
         'bordercolor': "#31333f",
         'steps': [
             {'range': [0, 300], 'color': "#1e1f26"},
-            {'range': [300, 700], 'color": "#2c2c2e"},
+            {'range': [300, 700], 'color': "#2c2c2e"},
             {'range': [700, 1000], 'color': "#3f3f46"}],
         'threshold': {
             'line': {'color': gauge_threshold_color, 'width': 4},
