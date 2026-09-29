@@ -606,19 +606,20 @@ peach_score = int(c1_score + c2_score + c3_score + c4_score)
 # --- RANK DETERMINATION LOGIC ---
 def get_rank_details(score):
     if score >= 900:
-        return "S", "#e5e7eb", "Elite"      
+        return "S", "#e5e7eb", "Elite"      # Silver
     elif score >= 800:
-        return "A", "#10b981", "Superb"     
+        return "A", "#10b981", "Superb"     # Green
     elif score >= 700:
-        return "B", "#3b82f6", "Great"      
+        return "B", "#3b82f6", "Great"      # Blue
     elif score >= 600:
-        return "C", "#f59e0b", "Good"       
+        return "C", "#f59e0b", "Good"       # Yellow
     elif score >= 500:
-        return "D", "#f97316", "Developing" 
+        return "D", "#f97316", "Developing" # Orange
     else:
-        return "F", "#ef4444", "Beginner"   
+        return "F", "#ef4444", "Beginner"   # Red
 
 rank_letter, rank_color, rank_title = get_rank_details(peach_score)
+gauge_threshold_color = "#e5e7eb" if peach_score >= 900 else "#10b981"
 
 # --- 2025 PREVIOUS YEAR SCORE CALCULATOR ---
 prev_year_dates = sorted([d for d in unique_dates if d.year == prev_year])
@@ -852,7 +853,7 @@ fig_score = go.Figure(go.Indicator(
     domain = {'x': [0, 1], 'y': [0, 1]},
     gauge = {
         'axis': {'range': [0, 1000], 'tickwidth': 1, 'tickcolor': "#31333f"},
-        'bar': {'color': "#f59e0b"},
+        'bar': {'color': rank_color},
         'bgcolor': "rgba(0,0,0,0)",
         'borderwidth': 2,
         'bordercolor': "#31333f",
@@ -861,7 +862,7 @@ fig_score = go.Figure(go.Indicator(
             {'range': [300, 700], 'color': "#2c2c2e"},
             {'range': [700, 1000], 'color': "#3f3f46"}],
         'threshold': {
-            'line': {'color': "#10b981", 'width': 4},
+            'line': {'color': gauge_threshold_color, 'width': 4},
             'thickness': 0.75,
             'value': 900}
     }
@@ -956,7 +957,7 @@ st.plotly_chart(fig_dow, use_container_width=True, config={'displayModeBar': Fal
 st.divider()
 
 # --- 7. MONTHLY COMPARISON ---
-st.subheader(f"🗓️ Monthly Comparison ({prev_year} vs {current_year})")
+st.subheader(f"🗓️️ Monthly Comparison ({prev_year} vs {current_year})")
 
 monthly_chart_data = []
 for m in range(1, 13):
