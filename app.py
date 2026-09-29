@@ -880,20 +880,21 @@ with score_col2:
         </div>
     """, unsafe_allow_html=True)
     
-    st.markdown(f"""
-    **Score Breakdown & Improvement Tips:**
-    * **Volume ({int(c1_score)}/500):** Progress toward your {goal_annual} annual target.
-      * *Tip:* Keep a steady 5/wk pace to max out this heavy-lifter category.
-    * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} of {current_week_num} total weeks.
-      * *Tip:* Avoid long dry spells; record at least once every week to protect this score.
-    * **Streaks ({int(c3_score)}/100):** Longest current year run ({max_curr_streak} days).
-      * *Tip:* String together back-to-back daily entries (up to 10 days) for quick bonus points.
-    * **Intensity ({int(c4_score)}/200):** Multi-session days ({multi_days_curr} logged).
-      * *Tip:* Log high-energy double or triple days (`x2`, `x3`) to rack up bonus points.
-    
-    *Hit 900+ for Elite Tier.*<br>
-    **{prev_year} Final Score:** {prev_peach_score} / 1000 ({prev_rank_letter} Rank)
-    """, unsafe_allow_html=True)
+    with st.expander("ℹ️ Score Breakdown & Tips"):
+        st.markdown(f"""
+        * **Volume ({int(c1_score)}/500):** Progress toward your {goal_annual} annual target.
+          * *Tip:* Keep a steady 5/wk pace to max out this heavy-lifter category.
+        * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} of {current_week_num} total weeks.
+          * *Tip:* Avoid long dry spells; record at least once every week to protect this score.
+        * **Streaks ({int(c3_score)}/100):** Longest current year run ({max_curr_streak} days).
+          * *Tip:* String together back-to-back daily entries (up to 10 days) for quick bonus points.
+        * **Intensity ({int(c4_score)}/200):** Multi-session days ({multi_days_curr} logged).
+          * *Tip:* Log high-energy double or triple days (`x2`, `x3`) to rack up bonus points.
+        
+        *Hit 900+ for Elite Tier.*
+        """)
+        
+    st.markdown(f"**{prev_year} Final Score:** {prev_peach_score} / 1000 ({prev_rank_letter} Rank)")
 
 st.divider()
 
