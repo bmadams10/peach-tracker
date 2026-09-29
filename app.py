@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 import streamlit.components.v1 as components
 import plotly.express as px
+import plotly.graph_objects as go
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -311,8 +312,7 @@ current_user = st.session_state.authenticated_user
 
 def get_calendar_service():
     if "gcp_service_account" not in st.secrets:
-        st.error("🚨 Google Service Account configuration missing from Streamlit Secrets.")
-        st.stop()
+        raise ValueError("Google Service Account credentials not found in Streamlit Secrets.")
     
     creds_dict = dict(st.secrets["gcp_service_account"])
     
@@ -321,41 +321,26 @@ def get_calendar_service():
     if "auth_uri" not in creds_dict:
         creds_dict["auth_uri"] = "https://accounts.google.com/o/oauth2/auth"
 
-    pk = str(creds_dict.get("private_key", ""))
-    
-    # --- AGGRESSIVE RECONSTRUCTOR ---
-    if pk:
+    if "private_key" in creds_dict:
+        pk = str(creds_dict["private_key"])
+        
         if "-----BEGIN PRIVATE KEY-----" in pk and "-----END PRIVATE KEY-----" in pk:
             try:
                 import textwrap
-                # Extract just the base64 blob safely
                 core_key = pk.split("-----BEGIN PRIVATE KEY-----")[1].split("-----END PRIVATE KEY-----")[0]
-                # Strip absolutely ALL whitespace, newlines, and literal characters
                 core_key = core_key.replace("\\n", "").replace("\n", "").replace(" ", "").replace("\r", "").replace('"', '').replace("'", "").strip()
-                # Re-wrap exactly to 64 chars
                 wrapped = "\n".join(textwrap.wrap(core_key, 64))
                 creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped}\n-----END PRIVATE KEY-----\n"
             except Exception:
-                pass # If parsing fails, fall back to the default string to trigger the diagnostic display
+                pass 
         else:
             creds_dict["private_key"] = pk.replace("\\n", "\n")
 
-    try:
-        credentials = service_account.Credentials.from_service_account_info(
-            creds_dict,
-            scopes=["https://www.googleapis.com/auth/calendar"]
-        )
-        return build("calendar", "v3", credentials=credentials)
-    except Exception as e:
-        # --- DIAGNOSTIC SAFETY NET DISPLAY ---
-        st.error("🚨 Google Authentication Failed - Private Key Formatting Error")
-        st.warning("Streamlit is corrupting the Private Key. Here is exactly what Python is receiving:")
-        st.markdown(f"**Error Message:** `{e}`")
-        pk_repr = repr(pk)
-        st.info("Please copy and paste these two lines back to me:")
-        st.code(f"First 60 chars: {pk_repr[:60]}")
-        st.code(f"Last 60 chars:  {pk_repr[-60:]}")
-        st.stop()
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_dict,
+        scopes=["https://www.googleapis.com/auth/calendar"]
+    )
+    return build("calendar", "v3", credentials=credentials)
 
 def update_peach_events(event_date, target_count, current_events):
     service = get_calendar_service()
@@ -387,7 +372,6 @@ def fetch_calendar_data():
     events = []
     page_token = None
     
-    # Query Google Calendar API directly back to 2009-01-01
     while True:
         events_result = service.events().list(
             calendarId=calendar_id,
@@ -433,7 +417,6 @@ for d in events:
     date_counts[d] += 1
     month_year_counts[f"{calendar.month_abbr[d.month]} {d.year}"] += 1
     
-    # Day of the Week filter: Only count entries from current_year and prev_year
     if d.year in (current_year, prev_year):
         day_name = calendar.day_name[d.weekday()]
         day_of_week_counts[day_name] += 1
@@ -462,27 +445,26 @@ current_week_num = max(1, today.isocalendar()[1])
 weekly_pace = round(total_curr / current_week_num, 2)
 remaining_weeks = max(1, 52 - current_week_num)
 
-goal_4_0 = 209
+goal_annual = 260
 
-# Dynamic Over / Under Goal Status Calculation
-if total_curr < goal_4_0:
+if total_curr < goal_annual:
     rem_label = "Remaining for Goal"
-    rem_val = f"{goal_4_0 - total_curr} 🍑"
-    rem_delta = f"Target: {goal_4_0}"
-elif total_curr == goal_4_0:
+    rem_val = f"{goal_annual - total_curr} 🍑"
+    rem_delta = f"Target: {goal_annual}"
+elif total_curr == goal_annual:
     rem_label = "Goal Status"
-    rem_val = "209 🍑"
+    rem_val = f"{goal_annual} 🍑"
     rem_delta = "Goal Reached! 🎉"
 else:
-    over_by = total_curr - goal_4_0
+    over_by = total_curr - goal_annual
     rem_label = "Over Goal by"
     rem_val = f"+{over_by} 🍑"
-    rem_delta = f"Exceeded Target ({goal_4_0}) 🎉"
+    rem_delta = f"Exceeded Target ({goal_annual}) 🎉"
 
 # --- MILESTONE CELEBRATIONS ---
-if total_curr >= goal_4_0 and "celebrated_goal" not in st.session_state:
+if total_curr >= goal_annual and "celebrated_goal" not in st.session_state:
     st.balloons()
-    st.toast("🎉 AMAZING! You hit your 4.0/wk annual goal of 209 🍑!", icon="🍑")
+    st.toast(f"🎉 AMAZING! You hit your 5.0/wk annual goal of {goal_annual} 🍑!", icon="🍑")
     st.session_state.celebrated_goal = True
 
 if total_prev > 0 and total_curr > total_prev and "celebrated_prev_year" not in st.session_state:
@@ -543,7 +525,7 @@ if max_streak_dates:
 else:
     streak_period_str = "—"
 
-# --- 2. MOST PEACHES IN A WEEK LOGIC (SUNDAY TO SATURDAY) ---
+# --- 2. MOST PEACHES IN A WEEK LOGIC ---
 weekly_peach_counts = defaultdict(int)
 for event_date, count in date_counts.items():
     days_since_sunday = (event_date.weekday() + 1) % 7
@@ -586,6 +568,24 @@ if day_of_week_counts:
 else:
     top_day_str, top_day_val, top_day_pct = "—", 0, 0.0
 
+# --- 3. PEACH SCORE CALCULATION ---
+# Component 1: Volume (Max 500 points) based on 260 target
+c1_score = min(500, (total_curr / goal_annual) * 500)
+
+# Component 2: Consistency (Max 300 points) based on active weeks vs total weeks
+active_weeks_curr = len(set(d.isocalendar()[1] for d in events if d.year == current_year))
+c2_score = min(300, (active_weeks_curr / current_week_num) * 300) if current_week_num > 0 else 0
+
+# Component 3: YoY Growth vs 2025 (Max 200 points)
+c3_score = 0
+if prev_ytd_count > 0:
+    # Matching last year = 160 points. Beating it by 25% = 200 points.
+    c3_score = min(200, (total_curr / prev_ytd_count) * 160)
+elif total_curr > 0:
+    c3_score = 200
+
+peach_score = int(c1_score + c2_score + c3_score)
+
 # Initialize Session State
 if "cal_year" not in st.session_state:
     st.session_state.cal_year = current_year
@@ -608,7 +608,6 @@ def handle_next():
     else:
         st.session_state.cal_month += 1
 
-# Dialog Function for Adding / Updating Peaches
 @st.dialog("Add a 🍑")
 def add_peach_modal():
     selected_dt = st.date_input("Select Date", value=today)
@@ -671,7 +670,6 @@ with h_left:
 with h_right:
     st.button("🔒 Lock", on_click=auth.logout, use_container_width=True)
 
-# Quick Action Buttons (Quick +1 Today & Force Refresh)
 q_col1, q_col2 = st.columns(2)
 with q_col1:
     if st.button("⚡ +1 Today", use_container_width=True):
@@ -707,7 +705,6 @@ with col_label:
 with col_next:
     st.button("›", key="btn_next_month", on_click=handle_next, use_container_width=True)
 
-# Render HTML Month Grid Table
 selected_year = st.session_state.cal_year
 selected_month = st.session_state.cal_month
 
@@ -738,7 +735,6 @@ table_html += '</tbody></table>'
 
 st.markdown(table_html, unsafe_allow_html=True)
 
-# "+ Add a 🍑" Trigger Button Below Calendar
 if st.button("+ Custom Date Add 🍑", key="btn_open_add_modal", use_container_width=True):
     st.session_state.show_add_modal = True
 
@@ -747,18 +743,17 @@ if st.session_state.show_add_modal:
 
 st.divider()
 
-# --- 3. KEY METRICS (DYNAMIC DOUBLE COLUMN) ---
+# --- 3. KEY METRICS ---
 st.subheader("📊 Key Metrics")
 
 km_col_left, km_col_right = st.columns(2)
 
-# Left Column: Current Year Goals, Pace & Last Activity
 with km_col_left:
     st.markdown(f'<div class="metrics-col-hdr">{current_year} Goals & Pace</div>', unsafe_allow_html=True)
     
-    if weekly_pace >= 4.0:
+    if weekly_pace >= 5.0:
         pace_status = "🟢 On Track"
-    elif weekly_pace >= 3.0:
+    elif weekly_pace >= 4.0:
         pace_status = "🟡 Moderate Pace"
     else:
         pace_status = "🔴 Below Target"
@@ -776,7 +771,6 @@ with km_col_left:
     active_streak_delta = f"Streak: {current_streak_peaches} 🍑 ({current_streak_days}d)" if current_streak_peaches > 0 else "No active streak"
     st.metric("Last Activity", recency_str, delta=active_streak_delta)
 
-# Right Column: Lifetime Insights, Peaks & Streaks
 with km_col_right:
     st.markdown('<div class="metrics-col-hdr">Lifetime Insights</div>', unsafe_allow_html=True)
     
@@ -787,7 +781,48 @@ with km_col_right:
 
 st.divider()
 
-# --- 4. DEDICATED LIFETIME PROGRESS SECTION ---
+# --- 4. THE PEACH SCORE ---
+st.subheader("🏅 The Peach Score")
+st.caption(f"A dynamic 0-1000 index calculating Volume, Consistency, and YTD Growth. Requires a full year of tracking to max out.")
+
+fig_score = go.Figure(go.Indicator(
+    mode = "gauge+number",
+    value = peach_score,
+    domain = {'x': [0, 1], 'y': [0, 1]},
+    gauge = {
+        'axis': {'range': [0, 1000], 'tickwidth': 1, 'tickcolor': "#31333f"},
+        'bar': {'color': "#f59e0b"},
+        'bgcolor': "rgba(0,0,0,0)",
+        'borderwidth': 2,
+        'bordercolor': "#31333f",
+        'steps': [
+            {'range': [0, 300], 'color': "#1e1f26"},
+            {'range': [300, 700], 'color': "#2c2c2e"},
+            {'range': [700, 1000], 'color': "#3f3f46"}],
+        'threshold': {
+            'line': {'color': "#10b981", 'width': 4},
+            'thickness': 0.75,
+            'value': 900}
+    }
+))
+fig_score.update_layout(height=280, margin=dict(t=30, b=10, l=10, r=10), paper_bgcolor="rgba(0,0,0,0)", font={'color': "#f3f4f6"})
+
+score_col1, score_col2 = st.columns([1.2, 1])
+with score_col1:
+    st.plotly_chart(fig_score, use_container_width=True, config={'displayModeBar': False})
+with score_col2:
+    st.markdown(f"""
+    **Score Breakdown:**
+    * **Volume ({int(c1_score)}/500):** Progress toward the {goal_annual} target.
+    * **Consistency ({int(c2_score)}/300):** Active {active_weeks_curr} weeks out of {current_week_num}.
+    * **Growth ({int(c3_score)}/200):** YTD vs {prev_year} ({prev_ytd_count} 🍑).
+    
+    *Hit 900+ for Elite Tier.*
+    """)
+
+st.divider()
+
+# --- 5. LIFETIME PROGRESS SECTION ---
 st.markdown(f"""
     <div class="lifetime-progress-card">
         <div class="lifetime-card-header">
@@ -817,7 +852,7 @@ st.markdown(f"""
 
 st.divider()
 
-# --- 5. DAY OF THE WEEK BREAKDOWN ---
+# --- 6. DAY OF THE WEEK BREAKDOWN ---
 st.markdown(f"#### 📆 Day of the Week Breakdown ({prev_year}–{current_year})")
 
 dow_order = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -849,7 +884,7 @@ st.plotly_chart(fig_dow, use_container_width=True, config={'displayModeBar': Fal
 
 st.divider()
 
-# --- 6. MONTHLY COMPARISON (GROUPED DOUBLE BAR CHART) ---
+# --- 7. MONTHLY COMPARISON ---
 st.subheader(f"🗓️ Monthly Comparison ({prev_year} vs {current_year})")
 
 monthly_chart_data = []
@@ -904,9 +939,7 @@ st.plotly_chart(fig_monthly, use_container_width=True, config={'displayModeBar':
 
 st.divider()
 
-# ==============================================================================
-# 7. NATIONAL STATS COMPARISON (AGES 35-45) WITH CLEAN MOBILE CARDS
-# ==============================================================================
+# --- 8. NATIONAL STATS COMPARISON ---
 st.markdown('<div class="national-section-container">', unsafe_allow_html=True)
 st.subheader("🇺🇸 National Benchmark (Ages 35–45)")
 st.caption("U.S. married couple data sourced from General Social Survey & Kinsey Institute statistics.")
@@ -915,7 +948,6 @@ national_weekly_avg = 0.96
 ratio_vs_national = round(weekly_pace / national_weekly_avg, 1) if weekly_pace > 0 else 0.0
 projected_annual = round(weekly_pace * 52)
 
-# Calculate National YTD Average through current week number
 national_ytd_avg = round(0.96 * current_week_num)
 ytd_ratio_vs_national = round(total_curr / national_ytd_avg, 1) if national_ytd_avg > 0 else 1.0
 
@@ -952,7 +984,7 @@ st.markdown("""
 | **1 to 3 times / month** | 12 – 36 / yr | 0.2 – 0.7 / wk | **~35% – 40%** of couples |
 | **1 to 2 times / week** *(US Avg)* | 52 – 104 / yr | 1.0 – 2.0 / wk | **~30% – 35%** of couples |
 | **3 times / week** | 150 – 180 / yr | ~3.0 / wk | **~3% – 5%** of couples |
-| **4+ times / week (Your Pace)** | **200+ / yr** | **4.0+ / wk** | **Top ~1% – 2%** of couples |
+| **4+ times / week** | **200+ / yr** | **4.0+ / wk** | **Top ~1% – 2%** of couples |
 """)
 
 st.caption("📌 *Note: For couples aged 35–45, logging multi-session days (x2, x3) occurs in under 3% of active weeks for average married households.*")
@@ -961,9 +993,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
-# ==============================================================================
-# 8. DYNAMIC PHYSICS BOX (YEAR-TO-DATE 🍑 VISUALIZER)
-# ==============================================================================
+# --- 9. DYNAMIC PHYSICS BOX ---
 st.subheader("🫨 Play with your 🍑s")
 st.caption(f"Play with all {total_curr} 🍑s in {current_year}. —click or tap inside to stir!")
 
@@ -1016,7 +1046,7 @@ physics_box_html = f"""
         const count = {total_curr};
         const peaches = [];
         const radius = 14; 
-        const drag = 0.985; // Viscous drag (slows velocity down like in water)
+        const drag = 0.985; 
 
         for (let i = 0; i < count; i++) {{
             peaches.push({{
@@ -1035,7 +1065,6 @@ physics_box_html = f"""
             for (let i = 0; i < peaches.length; i++) {{
                 let p = peaches[i];
 
-                // Apply viscous drag & subtle drift (underwater feel)
                 p.vx *= drag;
                 p.vy *= drag;
                 p.vx += (Math.random() - 0.5) * 0.08;
@@ -1044,7 +1073,6 @@ physics_box_html = f"""
                 p.x += p.vx;
                 p.y += p.vy;
 
-                // Wall collisions
                 if (p.x - p.radius < 0) {{
                     p.x = p.radius;
                     p.vx *= -0.6;
@@ -1061,7 +1089,6 @@ physics_box_html = f"""
                     p.vy *= -0.6;
                 }}
 
-                // Particle collisions
                 for (let j = i + 1; j < peaches.length; j++) {{
                     let p2 = peaches[j];
                     let dx = p2.x - p.x;
@@ -1110,7 +1137,6 @@ physics_box_html = f"""
         }}
         loop();
 
-        // Underwater pulse/shockwave interaction on click or tap
         canvas.addEventListener('pointerdown', (e) => {{
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
