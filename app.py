@@ -859,7 +859,7 @@ fig_score = go.Figure(go.Indicator(
         'steps': [
             {'range': [0, 300], 'color': "#1e1f26"},
             {'range': [300, 700], 'color': "#2c2c2e"},
-            {'range': [700, 1000], 'color': "#3f3f46"}],
+            {'range': [700, 1000], 'color": "#3f3f46"}],
         'threshold': {
             'line': {'color': gauge_threshold_color, 'width': 4},
             'thickness': 0.75,
@@ -882,16 +882,23 @@ with score_col2:
     
     with st.expander("ℹ️ Score Breakdown & Tips"):
         st.markdown(f"""
+        **Score Categories & Tips:**
         * **Volume ({int(c1_score)}/500):** Progress toward your {goal_annual} annual target.
           * *Tip:* Keep a steady 5/wk pace to max out this heavy-lifter category.
         * **Consistency ({int(c2_score)}/200):** Active {active_weeks_curr} of {current_week_num} total weeks.
-          * *Tip:* Avoid long dry spells; record at least once every week to protect this score.
+          * *Tip:* Avoid long dry spells; record atleştir once every week to protect this score.
         * **Streaks ({int(c3_score)}/100):** Longest current year run ({max_curr_streak} days).
           * *Tip:* String together back-to-back daily entries (up to 10 days) for quick bonus points.
         * **Intensity ({int(c4_score)}/200):** Multi-session days ({multi_days_curr} logged).
           * *Tip:* Log high-energy double or triple days (`x2`, `x3`) to rack up bonus points.
-        
-        *Hit 900+ for Elite Tier.*
+
+        **Rank Thresholds:**
+        * **S Rank (Elite):** 900 – 1000 points *(Hit 900+ for Elite Tier)*
+        * **A Rank (Superb):** 800 – 899 points
+        * **B Rank (Great):** 650 – 799 points
+        * **C Rank (Good):** 500 – 649 points
+        * **D Rank (Developing):** 300 – 499 points
+        * **F Rank (Beginner):** 0 – 299 points
         """)
         
     st.markdown(f"**{prev_year} Final Score:** {prev_peach_score} / 1000 ({prev_rank_letter} Rank)")
