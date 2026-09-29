@@ -792,9 +792,11 @@ km_col_left, km_col_right = st.columns(2)
 with km_col_left:
     st.markdown(f'<div class="metrics-col-hdr">{current_year} Goals & Pace</div>', unsafe_allow_html=True)
     
-    if weekly_pace >= 5.0:
-        pace_status = "🟢 On Track"
+    if weekly_pace >= 4.25:
+        pace_status = "⚪ Elite Pace"
     elif weekly_pace >= 4.0:
+        pace_status = "🟢 Superb Pace"
+    elif weekly_pace >= 3.0:
         pace_status = "🟡 Moderate Pace"
     else:
         pace_status = "🔴 Below Target"
