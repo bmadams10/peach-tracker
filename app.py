@@ -597,7 +597,7 @@ c3_score = min(100, max_curr_streak * 10)
 
 # Component 4: Intensity Bonus (Max 200 points) - Rewards multi-session days (x2, x3)
 multi_days_curr = sum(1 for d, count in date_counts.items() if d.year == current_year and count > 1)
-c4_score = min(200, multi_days_curr * 20) # 20 points per multi-session day, maxes out at 10 multi-days
+c4_score = min(200, multi_days_curr * 20)
 
 peach_score = int(c1_score + c2_score + c3_score + c4_score)
 
@@ -851,7 +851,7 @@ fig_score = go.Figure(go.Indicator(
     value = peach_score,
     domain = {'x': [0, 1], 'y': [0, 1]},
     gauge = {
-        'axis': {'range': [0, 1000], 'tickwidth': 1, 'tickcolor": "#31333f"},
+        'axis': {'range': [0, 1000], 'tickwidth': 1, 'tickcolor': "#31333f"},
         'bar': {'color': rank_color},
         'bgcolor': "rgba(0,0,0,0)",
         'borderwidth': 2,
